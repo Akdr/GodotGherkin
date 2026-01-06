@@ -370,7 +370,7 @@ func _parse_description() -> String:
 
 	_skip_empty_lines()
 
-	while _check(GherkinLexer.TokenType.TEXT):
+	while _check(GherkinLexerScript.TokenType.TEXT):
 		var text_token := _advance()
 		description_lines.append(text_token.value)
 
