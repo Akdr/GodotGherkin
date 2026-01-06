@@ -33,7 +33,7 @@ jobs:
       - name: Setup addon structure
         run: |
           mkdir -p addons/godot_gherkin
-          cp -r core runner steps util plugin.cfg plugin.gd addons/godot_gherkin/
+          mv core runner steps util plugin.cfg plugin.gd plugin.gd.uid addons/godot_gherkin/
 
       - name: Import project
         run: |
