@@ -1,6 +1,6 @@
 # GodotGherkin
 
-A Behavior-Driven Development (BDD) testing framework for Godot 4.5+ that enables writing tests in Gherkin syntax with GDScript step definitions.
+A Behavior-Driven Development (BDD) testing framework for Godot 4.3+ that enables writing tests in Gherkin syntax with GDScript step definitions.
 
 ## Features
 
@@ -69,28 +69,37 @@ Create `tests/steps/inventory_steps.gd`:
 ```gdscript
 extends RefCounted
 
-func register_steps(registry: StepRegistry) -> void:
+const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
+const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
+
+
+func register_steps(registry: StepRegistryScript) -> void:
     registry.given("the player has no items", _no_items)
     registry.given("I have {int} items in my inventory", _have_items)
     registry.when("I pick up {int} {word}(s)", _pick_up)
     registry.when("I drop {string}", _drop)
     registry.then("I should have {int} items", _should_have)
 
-func _no_items(ctx: TestContext) -> void:
+
+func _no_items(ctx: TestContextScript) -> void:
     ctx.set_value("inventory_count", 0)
 
-func _have_items(ctx: TestContext, count: int) -> void:
+
+func _have_items(ctx: TestContextScript, count: int) -> void:
     ctx.set_value("inventory_count", count)
 
-func _pick_up(ctx: TestContext, count: int, item_type: String) -> void:
+
+func _pick_up(ctx: TestContextScript, count: int, item_type: String) -> void:
     var current: int = ctx.get_value("inventory_count", 0)
     ctx.set_value("inventory_count", current + count)
 
-func _drop(ctx: TestContext, item_name: String) -> void:
+
+func _drop(ctx: TestContextScript, item_name: String) -> void:
     var current: int = ctx.get_value("inventory_count", 0)
     ctx.set_value("inventory_count", current - 1)
 
-func _should_have(ctx: TestContext, expected: int) -> void:
+
+func _should_have(ctx: TestContextScript, expected: int) -> void:
     var actual: int = ctx.get_value("inventory_count", 0)
     ctx.assert_equal(actual, expected)
 ```
@@ -103,9 +112,12 @@ Create `tests/run_tests.gd`:
 #!/usr/bin/env -S godot --headless --script
 extends SceneTree
 
+const GherkinCLIScript = preload("res://addons/godot_gherkin/runner/cli_runner.gd")
+
+
 func _init() -> void:
-    var cli := GherkinCLI.new(self)
-    var exit_code := await cli.run(OS.get_cmdline_args())
+    var cli := GherkinCLIScript.new(self)
+    var exit_code := await cli.run(OS.get_cmdline_user_args())
     quit(exit_code)
 ```
 
@@ -155,7 +167,7 @@ godot --headless --script tests/run_tests.gd -- --format json
 - **Given**: Preconditions (setup)
 - **When**: Actions (the thing being tested)
 - **Then**: Expected outcomes (assertions)
-- **And/But**: Continue previous Given/When/Then
+- **And/But**: Continue previous Given/When/Then (inherits keyword context)
 - **Examples**: Data table for Scenario Outline
 
 ### Tags
@@ -238,6 +250,23 @@ registry.when("I click/press the button", _click_button)
 # Matches: "I click the button" and "I press the button"
 ```
 
+### Multi-Keyword Steps with `registry.step()`
+
+When a step can appear with different keywords (Given/When/Then/And), use `registry.step()`:
+
+```gdscript
+# PROBLEM: "And I navigate to X" won't match when And follows Given
+# because And inherits Given's context, not When's
+registry.when("I navigate to {string}", _navigate)
+
+# SOLUTION: Use registry.step() to match any keyword
+registry.step("I navigate to {string}", _navigate)
+```
+
+This is especially important for steps that might appear as:
+- `When I navigate to "home"`
+- `And I navigate to "settings"` (after a Given step)
+
 ## TestContext API
 
 The `TestContext` is passed to every step function and provides:
@@ -281,17 +310,49 @@ ctx.free_scene()                           # Clean up scene
 Steps can use `await` for asynchronous operations:
 
 ```gdscript
-func register_steps(registry: StepRegistry) -> void:
+func register_steps(registry: StepRegistryScript) -> void:
     registry.when("I wait for {float} seconds", _wait)
     registry.when("the animation completes", _wait_animation)
 
-func _wait(ctx: TestContext, seconds: float) -> void:
+
+func _wait(ctx: TestContextScript, seconds: float) -> void:
     await ctx.get_tree().create_timer(seconds).timeout
 
-func _wait_animation(ctx: TestContext) -> void:
+
+func _wait_animation(ctx: TestContextScript) -> void:
     var player: AnimationPlayer = ctx.get_node("AnimationPlayer")
     await player.animation_finished
 ```
+
+## Testing Patterns
+
+### Mock Pattern for Autoload-Dependent Systems
+
+Systems that reference autoloads (like EventBus, GameManager) cannot compile in headless mode without those autoloads present. Use mock objects to test the behavior pattern:
+
+```gdscript
+# Instead of testing SubSceneManager directly (which references EventBus),
+# mock the state management pattern:
+
+func _given_at_location(ctx: TestContextScript, location: String) -> void:
+    # Mock the navigation state instead of using real autoload
+    ctx.set_value("current_location", location)
+    ctx.set_value("history", [location])
+
+
+func _when_navigate_to(ctx: TestContextScript, destination: String) -> void:
+    var history: Array = ctx.get_value("history", [])
+    history.append(destination)
+    ctx.set_value("history", history)
+    ctx.set_value("current_location", destination)
+
+
+func _then_should_be_at(ctx: TestContextScript, expected: String) -> void:
+    var current: String = ctx.get_value("current_location", "")
+    ctx.assert_equal(current, expected, "Expected to be at %s" % expected)
+```
+
+This pattern lets you test navigation logic, state machines, and other behaviors without requiring the full game infrastructure.
 
 ## Exit Codes
 
@@ -352,7 +413,7 @@ When using `--format json`, output is structured for machine parsing:
 
 ## Requirements
 
-- Godot 4.5+
+- Godot 4.3+ (tested with 4.3, 4.4, 4.5)
 - No external dependencies
 
 ## License

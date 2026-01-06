@@ -4,9 +4,11 @@ This document is optimized for AI assistants and LLMs working with GodotGherkin.
 
 ## Quick Context
 
-GodotGherkin is a BDD testing framework for Godot 4.5+. It parses `.feature` files (Gherkin syntax) and executes GDScript step definitions.
+GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` files (Gherkin syntax) and executes GDScript step definitions.
 
 **Primary use case**: Headless CLI execution for AI-assisted development and CI/CD.
+
+**Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
 ## File Structure
 
@@ -132,22 +134,46 @@ Feature: Feature Name
 
 Location: `tests/steps/*_steps.gd`
 
-**Required**: File must have `register_steps(registry: StepRegistry)` method.
+**Required**: File must extend RefCounted and have `register_steps(registry)` method.
 
 ```gdscript
 extends RefCounted
 
-func register_steps(registry: StepRegistry) -> void:
+const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
+const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
+
+
+func register_steps(registry: StepRegistryScript) -> void:
     # Pattern → Callback mapping
     registry.given("pattern with {int}", _method_name)
     registry.when("pattern with {string}", _method_name)
     registry.then("pattern with {float}", _method_name)
-    registry.step("any keyword pattern", _method_name)  # Matches Given/When/Then
+    registry.step("any keyword pattern", _method_name)  # Matches Given/When/Then/And/But
 
-# Step implementation signature: func(ctx: TestContext, ...params) -> void
-func _method_name(ctx: TestContext, param: int) -> void:
+
+# Step implementation signature: func(ctx, ...params) -> void
+func _method_name(ctx: TestContextScript, param: int) -> void:
     ctx.set_value("key", param)
     ctx.assert_equal(actual, expected)
+```
+
+### Critical: Use `registry.step()` for And/But Steps
+
+`And` and `But` inherit the previous keyword's context. If you have:
+
+```gherkin
+Given I am logged in
+And I navigate to "settings"
+```
+
+The `And I navigate to "settings"` is treated as a **Given**, not a When. Use `registry.step()` for steps that can appear with any keyword:
+
+```gdscript
+# BAD - Won't match "And I navigate to X" after a Given
+registry.when("I navigate to {string}", _navigate)
+
+# GOOD - Matches any keyword
+registry.step("I navigate to {string}", _navigate)
 ```
 
 ## Parameter Types
@@ -171,7 +197,7 @@ ctx.set_value(key: String, value: Variant)
 ctx.get_value(key: String, default: Variant = null) -> Variant
 ctx.has_value(key: String) -> bool
 
-# Assertions (all return bool, false = failure)
+# Assertions (throw on failure, stopping the scenario)
 ctx.assert_equal(actual, expected, message?)
 ctx.assert_not_equal(actual, not_expected, message?)
 ctx.assert_true(condition, message?)
@@ -181,7 +207,7 @@ ctx.assert_not_null(value, message?)
 ctx.assert_contains(container, item, message?)
 ctx.assert_greater(actual, threshold, message?)
 ctx.assert_less(actual, threshold, message?)
-ctx.fail(message)
+ctx.fail(message)  # Explicit failure
 
 # Scene management (requires SceneTree)
 ctx.load_scene(path: String) -> Node
@@ -191,33 +217,73 @@ ctx.free_scene()
 ctx.get_tree() -> SceneTree
 ```
 
+### State Management Pattern
+
+Use TestContext for sharing state between steps within a scenario:
+
+```gdscript
+# Store calculated values
+func _when_calculate(ctx: TestContextScript, a: int, b: int) -> void:
+    ctx.set_value("result", a + b)
+
+# Retrieve with default fallback
+func _then_verify(ctx: TestContextScript, expected: int) -> void:
+    var actual: int = ctx.get_value("result", 0)
+    ctx.assert_equal(actual, expected, "Calculation mismatch")
+```
+
 ## Async Steps
 
 Steps can use `await`:
 
 ```gdscript
-func _wait_for_signal(ctx: TestContext) -> void:
+func _wait_for_signal(ctx: TestContextScript) -> void:
     await ctx.get_tree().create_timer(1.0).timeout
 
-func _wait_animation(ctx: TestContext) -> void:
+
+func _wait_animation(ctx: TestContextScript) -> void:
     var anim: AnimationPlayer = ctx.get_node("AnimationPlayer")
     await anim.animation_finished
 ```
 
-## Key Classes
+## Mock Pattern for Autoloads
 
-| Class | Purpose |
-|-------|---------|
-| `GherkinCLI` | CLI entry point, argument parsing |
-| `GherkinTestRunner` | Orchestrates test execution |
-| `ScenarioExecutor` | Runs individual scenarios |
-| `StepRegistry` | Step registration (given/when/then) |
-| `StepDefinition` | Pattern matching + callback |
-| `TestContext` | State + assertions |
-| `TestResult.*` | Result data structures |
-| `GherkinParser` | Parses .feature files → AST |
-| `GherkinLexer` | Tokenizes .feature files |
-| `GherkinAST.*` | AST node classes |
+Systems referencing autoloads (EventBus, GameManager) won't compile in headless mode. Mock the behavior:
+
+```gdscript
+# Instead of testing real SubSceneManager (references EventBus),
+# mock the state pattern:
+
+func _init_mock_state(ctx: TestContextScript) -> void:
+    ctx.set_value("current_location", "")
+    ctx.set_value("history", [])
+
+
+func _navigate_to(ctx: TestContextScript, destination: String) -> void:
+    var history: Array = ctx.get_value("history", [])
+    history.append(destination)
+    ctx.set_value("history", history)
+    ctx.set_value("current_location", destination)
+
+
+func _verify_location(ctx: TestContextScript, expected: String) -> void:
+    ctx.assert_equal(ctx.get_value("current_location"), expected)
+```
+
+## Key Classes (via preload)
+
+| Script | Preload Path | Purpose |
+|--------|--------------|---------|
+| `GherkinCLIScript` | `runner/cli_runner.gd` | CLI entry point |
+| `GherkinTestRunnerScript` | `runner/test_runner.gd` | Test orchestration |
+| `StepRegistryScript` | `steps/step_registry.gd` | Step registration |
+| `TestContextScript` | `runner/test_context.gd` | State + assertions |
+| `TestResultScript` | `runner/test_result.gd` | Result data |
+| `GherkinParserScript` | `core/gherkin_parser.gd` | Parser |
+| `GherkinLexerScript` | `core/gherkin_lexer.gd` | Lexer |
+| `GherkinASTScript` | `core/gherkin_ast.gd` | AST nodes |
+
+All paths relative to `res://addons/godot_gherkin/`.
 
 ## Common Tasks
 
@@ -252,3 +318,18 @@ godot --headless --script tests/run_tests.gd -- --verbose --fail-fast
 - No JUnit XML reporter (JSON is primary output)
 - Custom parameter types not exposed via API (can modify `parameter_types.gd`)
 - Tag expressions are simple (no AND/OR logic, just include/exclude)
+
+## Makefile Integration
+
+Common targets for projects using GodotGherkin:
+
+```makefile
+test-bdd:
+	godot --headless --script tests/run_tests.gd
+
+test-bdd-verbose:
+	godot --headless --script tests/run_tests.gd -- --verbose
+
+test-bdd-json:
+	godot --headless --script tests/run_tests.gd -- --format json --output test-results.json
+```
