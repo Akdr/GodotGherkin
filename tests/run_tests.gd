@@ -8,5 +8,5 @@ extends SceneTree
 
 func _init() -> void:
 	var cli := GherkinCLI.new(self)
-	var exit_code := await cli.run(OS.get_cmdline_args())
+	var exit_code := await cli.run(OS.get_cmdline_user_args())
 	quit(exit_code)

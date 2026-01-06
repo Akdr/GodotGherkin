@@ -64,11 +64,24 @@ func get_result_json() -> String:
 
 ## Write JSON output to a file.
 func _write_to_file(json_output: String) -> void:
-	var file := FileAccess.open(_output_path, FileAccess.WRITE)
+	# Handle relative paths by making them absolute from project root
+	var path := _output_path
+	if (
+		not path.begins_with("/")
+		and not path.begins_with("res://")
+		and not path.begins_with("user://")
+	):
+		# Get the project root directory (where project.godot is)
+		var project_root := ProjectSettings.globalize_path("res://")
+		path = project_root.path_join(_output_path)
+
+	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file:
 		file.store_string(json_output)
 		file.close()
 	else:
-		push_error("JsonReporter: Could not write to file: %s" % _output_path)
+		push_error(
+			"JsonReporter: Could not write to file: %s (resolved: %s)" % [_output_path, path]
+		)
 		# Fall back to stdout
 		print(json_output)

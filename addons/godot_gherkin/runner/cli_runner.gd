@@ -87,11 +87,6 @@ func run(args: PackedStringArray) -> int:
 func _parse_args(args: PackedStringArray) -> int:
 	var i := 0
 
-	# Skip until we find "--" which separates Godot args from our args
-	while i < args.size() and args[i] != "--":
-		i += 1
-	i += 1  # Skip the "--"
-
 	while i < args.size():
 		var arg := args[i]
 
