@@ -73,6 +73,7 @@ func _parse_feature() -> GherkinASTScript.Feature:
 	feature.description = _parse_description()
 
 	# Parse optional Background at feature level
+	_skip_empty_and_comments()
 	if _check(GherkinLexerScript.TokenType.BACKGROUND):
 		feature.background = _parse_background()
 
@@ -126,6 +127,7 @@ func _parse_rule() -> GherkinASTScript.Rule:
 	rule.description = _parse_description()
 
 	# Parse optional Background
+	_skip_empty_and_comments()
 	if _check(GherkinLexerScript.TokenType.BACKGROUND):
 		rule.background = _parse_background()
 
