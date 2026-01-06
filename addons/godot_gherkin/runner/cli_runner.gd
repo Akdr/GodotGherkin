@@ -190,7 +190,7 @@ func _do_dry_run() -> int:
 
 		for scenario in feature.scenarios:
 			if scenario is GherkinAST.ScenarioOutline:
-				var instance_count := scenario.get_instance_count()
+				var instance_count: int = scenario.get_instance_count()
 				print("  - %s (%d examples)" % [scenario.name, instance_count])
 			else:
 				print("  - %s" % scenario.name)
