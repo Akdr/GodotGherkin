@@ -65,19 +65,19 @@ class ParameterTypeRegistry:
 
 	func _init() -> void:
 		# Register built-in types
-		register(int_type)
-		register(float_type)
-		register(word_type)
-		register(string_type)
-		register(any_type)
-		register(anonymous_type)
+		register(ParameterTypes.int_type)
+		register(ParameterTypes.float_type)
+		register(ParameterTypes.word_type)
+		register(ParameterTypes.string_type)
+		register(ParameterTypes.any_type)
+		register(ParameterTypes.anonymous_type)
 
 	## Register a parameter type.
-	func register(param_type: ParameterType) -> void:
+	func register(param_type: ParameterTypes.ParameterType) -> void:
 		_types[param_type.name] = param_type
 
 	## Get a parameter type by name.
-	func get_type(name: String) -> ParameterType:
+	func get_type(name: String) -> ParameterTypes.ParameterType:
 		return _types.get(name)
 
 	## Check if a type exists.
@@ -86,7 +86,7 @@ class ParameterTypeRegistry:
 
 	## Define a custom parameter type.
 	func define_type(name: String, regex: String, transformer: Callable) -> void:
-		register(ParameterType.new(name, regex, transformer))
+		register(ParameterTypes.ParameterType.new(name, regex, transformer))
 
 	## Get all registered type names.
 	func get_type_names() -> Array[String]:

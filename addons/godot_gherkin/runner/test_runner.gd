@@ -16,6 +16,7 @@ var _registry: StepRegistry
 var _parser: GherkinParser
 var _file_scanner: FileScanner
 var _scene_tree: SceneTree = null
+var _step_instances: Array = []  # Keep step definition instances alive
 
 ## Configuration
 var features_path: String = "res://tests/features"
@@ -273,5 +274,7 @@ func _load_step_file(file_path: String) -> void:
 	var instance = script.new()
 	if instance.has_method("register_steps"):
 		instance.register_steps(_registry)
+		# Keep the instance alive so callbacks remain valid
+		_step_instances.append(instance)
 	else:
 		push_warning("GherkinTestRunner: Step file missing register_steps method: %s" % file_path)
