@@ -18,11 +18,18 @@ var _registry: StepRegistryScript
 var _context: TestContextScript
 var _previous_keyword: String = "Given"
 var _current_scenario_tags: Array[String] = []
+var _feature_tags: Array[String] = []
 
 
 func _init(registry: StepRegistryScript, context: TestContextScript = null) -> void:
 	_registry = registry
 	_context = context if context else TestContextScript.new()
+
+
+## Set feature tags for tag inheritance.
+## Scenarios will inherit these tags for step scoping with for_tags().
+func set_feature_tags(tags: Array[String]) -> void:
+	_feature_tags = tags
 
 
 ## Set the test context.
@@ -50,7 +57,11 @@ func execute_scenario(
 	# Reset context for new scenario
 	_context.reset()
 	_previous_keyword = "Given"
+	# Combine feature tags with scenario tags for tag inheritance
 	_current_scenario_tags = scenario.get_tag_names()
+	for tag in _feature_tags:
+		if tag not in _current_scenario_tags:
+			_current_scenario_tags.append(tag)
 
 	# Execute background steps first
 	if background:

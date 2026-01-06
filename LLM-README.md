@@ -10,7 +10,7 @@ GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` fil
 
 **Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
-**Version**: 0.3.0 - Now compatible with Godot Asset Library.
+**Version**: 0.3.1 - Tag inheritance and additional assertions.
 
 ## File Structure
 
@@ -207,8 +207,11 @@ ctx.assert_false(condition, message?)
 ctx.assert_null(value, message?)
 ctx.assert_not_null(value, message?)
 ctx.assert_contains(container, item, message?)
-ctx.assert_greater(actual, threshold, message?)
-ctx.assert_less(actual, threshold, message?)
+ctx.assert_not_contains(container, item, message?)
+ctx.assert_greater(actual, threshold, message?)        # Alias: assert_greater_than
+ctx.assert_less(actual, threshold, message?)           # Alias: assert_less_than
+ctx.assert_greater_or_equal(actual, threshold, message?)
+ctx.assert_less_or_equal(actual, threshold, message?)
 ctx.fail(message)  # Explicit failure
 
 # Scene management (requires SceneTree)
@@ -233,6 +236,32 @@ func _then_verify(ctx: TestContextScript, expected: int) -> void:
     var actual: int = ctx.get_value("result", 0)
     ctx.assert_equal(actual, expected, "Calculation mismatch")
 ```
+
+## Tag-Based Step Scoping
+
+Steps can be scoped to specific tags using `.for_tags()`, enabling the same pattern to have different implementations for different contexts:
+
+```gdscript
+# Scoped steps - only match when scenario has the specified tag
+registry.then("I should see a {string} button", _check_pause_button).for_tags(["@pause_menu"])
+registry.then("I should see a {string} button", _check_main_menu_button).for_tags(["@main_menu"])
+
+# Fallback unscoped step - matches when no scoped step matches
+registry.then("I should see a {string} button", _check_generic_button)
+```
+
+**Tag Inheritance**: Scenarios inherit their parent Feature's tags. A scenario without `@pause_menu` will still match `.for_tags(["@pause_menu"])` if the Feature has that tag:
+
+```gherkin
+@pause_menu
+Feature: Pause Menu
+  # All scenarios inherit @pause_menu tag
+
+  Scenario: Resume button  # Inherits @pause_menu, matches scoped steps
+    Then I should see a "Resume" button
+```
+
+**Priority**: Scoped steps take priority over unscoped steps. If both match, the scoped step wins.
 
 ## Async Steps
 

@@ -246,6 +246,7 @@ func assert_not_contains(container: Variant, item: Variant, message: String = ""
 
 
 ## Assert that a value is greater than another.
+## Alias: assert_greater_than
 func assert_greater(actual: Variant, threshold: Variant, message: String = "") -> bool:
 	if actual > threshold:
 		assertions_passed += 1
@@ -258,6 +259,7 @@ func assert_greater(actual: Variant, threshold: Variant, message: String = "") -
 
 
 ## Assert that a value is less than another.
+## Alias: assert_less_than
 func assert_less(actual: Variant, threshold: Variant, message: String = "") -> bool:
 	if actual < threshold:
 		assertions_passed += 1
@@ -267,6 +269,40 @@ func assert_less(actual: Variant, threshold: Variant, message: String = "") -> b
 	_record_error(msg)
 	assertions_failed += 1
 	return false
+
+
+## Assert that a value is greater than or equal to another.
+func assert_greater_or_equal(actual: Variant, threshold: Variant, message: String = "") -> bool:
+	if actual >= threshold:
+		assertions_passed += 1
+		return true
+
+	var msg := message if message else "Expected %s to be greater than or equal to %s" % [actual, threshold]
+	_record_error(msg)
+	assertions_failed += 1
+	return false
+
+
+## Assert that a value is less than or equal to another.
+func assert_less_or_equal(actual: Variant, threshold: Variant, message: String = "") -> bool:
+	if actual <= threshold:
+		assertions_passed += 1
+		return true
+
+	var msg := message if message else "Expected %s to be less than or equal to %s" % [actual, threshold]
+	_record_error(msg)
+	assertions_failed += 1
+	return false
+
+
+## Alias for assert_greater for naming consistency.
+func assert_greater_than(actual: Variant, threshold: Variant, message: String = "") -> bool:
+	return assert_greater(actual, threshold, message)
+
+
+## Alias for assert_less for naming consistency.
+func assert_less_than(actual: Variant, threshold: Variant, message: String = "") -> bool:
+	return assert_less(actual, threshold, message)
 
 
 ## Fail with a message.

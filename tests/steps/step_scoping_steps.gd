@@ -22,6 +22,13 @@ func register_steps(registry: StepRegistryScript) -> void:
 	# Fallback unscoped button check (matches scenarios without specific tags)
 	registry.then("I should see a {string} button", _check_generic_button)
 
+	# Tag inheritance test steps
+	registry.given("I am testing tag inheritance", _setup_tag_inheritance)
+	# This step is scoped to @inherited_tag - scenarios will match via feature tag inheritance
+	registry.then("the step scoped to inherited_tag should match", _verify_inherited_tag).for_tags(
+		["@inherited_tag"]
+	)
+
 
 func _on_pause_menu(ctx: TestContextScript) -> void:
 	ctx.set_value("screen", "pause_menu")
@@ -58,3 +65,17 @@ func _check_generic_button(ctx: TestContextScript, button_name: String) -> void:
 	# This is the fallback - works for any screen
 	var buttons: Array = ctx.get_value("buttons", [])
 	ctx.assert_true(button_name in buttons, "Screen should have '%s' button" % button_name)
+
+
+func _setup_tag_inheritance(ctx: TestContextScript) -> void:
+	ctx.set_value("testing_inheritance", true)
+
+
+func _verify_inherited_tag(ctx: TestContextScript) -> void:
+	# If this step matched, tag inheritance is working!
+	# This step is scoped to @inherited_tag, and the scenario doesn't have that tag directly,
+	# but the feature does. So it only matches if tag inheritance is implemented.
+	ctx.assert_true(
+		ctx.get_value("testing_inheritance", false),
+		"Tag inheritance test should have been set up"
+	)

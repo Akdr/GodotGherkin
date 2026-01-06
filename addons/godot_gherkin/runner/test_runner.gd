@@ -111,6 +111,7 @@ func run_feature(feature: GherkinASTScript.Feature) -> TestResultScript.FeatureR
 
 	var executor := ScenarioExecutorScript.new(_registry)
 	executor.set_context(TestContextScript.new(_scene_tree))
+	executor.set_feature_tags(feature.get_tag_names())
 
 	# Run scenarios at feature level
 	for scenario_item in feature.scenarios:
