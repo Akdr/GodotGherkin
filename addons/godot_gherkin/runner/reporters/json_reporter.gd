@@ -1,11 +1,15 @@
-class_name JsonReporter
 extends RefCounted
 ## Machine-readable JSON output reporter.
+##
+## Self-reference for headless mode compatibility
+const JsonReporterScript = preload("res://addons/godot_gherkin/runner/reporters/json_reporter.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
 ##
 ## Produces JSON output suitable for parsing by AI assistants and automation tools.
 
 var _output_path: String = ""
-var _result: TestResult.SuiteResult = null
+var _result: TestResultScript.SuiteResult = null
 
 
 func _init(output_path: String = "") -> void:
@@ -18,27 +22,27 @@ func report_start(_feature_count: int) -> void:
 
 
 ## Report feature start (no output for JSON).
-func report_feature_start(_feature: GherkinAST.Feature) -> void:
+func report_feature_start(_feature: GherkinASTScript.Feature) -> void:
 	pass
 
 
 ## Report feature completion (no output for JSON).
-func report_feature_complete(_result: TestResult.FeatureResult) -> void:
+func report_feature_complete(_result: TestResultScript.FeatureResult) -> void:
 	pass
 
 
 ## Report scenario start (no output for JSON).
-func report_scenario_start(_scenario: GherkinAST.Scenario) -> void:
+func report_scenario_start(_scenario: GherkinASTScript.Scenario) -> void:
 	pass
 
 
 ## Report scenario completion (no output for JSON).
-func report_scenario_complete(_result: TestResult.ScenarioResult) -> void:
+func report_scenario_complete(_result: TestResultScript.ScenarioResult) -> void:
 	pass
 
 
 ## Report full suite results as JSON.
-func report_results(result: TestResult.SuiteResult) -> void:
+func report_results(result: TestResultScript.SuiteResult) -> void:
 	_result = result
 	var json_output := result.to_json()
 

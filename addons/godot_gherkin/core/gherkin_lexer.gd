@@ -1,6 +1,8 @@
-class_name GherkinLexer
 extends RefCounted
 ## Tokenizer for Gherkin feature files.
+##
+## Self-reference for headless mode compatibility
+const GherkinLexerScript = preload("res://addons/godot_gherkin/core/gherkin_lexer.gd")
 ##
 ## Converts raw feature file text into a stream of tokens for parsing.
 

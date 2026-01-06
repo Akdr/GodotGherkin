@@ -1,6 +1,10 @@
-class_name StepDefinition
 extends RefCounted
 ## Represents a single step definition with its pattern and callback.
+##
+## Self-reference for headless mode compatibility
+const StepDefinitionScript = preload("res://addons/godot_gherkin/steps/step_definition.gd")
+const StepMatcherScript = preload("res://addons/godot_gherkin/steps/step_matcher.gd")
+const ParameterTypesScript = preload("res://addons/godot_gherkin/steps/parameter_types.gd")
 ##
 ## Step definitions map Gherkin step text to executable GDScript functions.
 
@@ -8,7 +12,7 @@ extends RefCounted
 var pattern: String = ""
 
 ## Compiled regex and parameter types.
-var _compiled: StepMatcher.CompileResult = null
+var _compiled: StepMatcherScript.CompileResult = null
 
 ## The callback function to execute.
 var callback: Callable
@@ -32,7 +36,7 @@ func _init(
 
 ## Compile the pattern to regex.
 func _compile() -> void:
-	_compiled = StepMatcher.compile_pattern(pattern)
+	_compiled = StepMatcherScript.compile_pattern(pattern)
 	if not _compiled.success:
 		push_error("Failed to compile step pattern '%s': %s" % [pattern, _compiled.error])
 
@@ -41,15 +45,15 @@ func _compile() -> void:
 func matches(step_text: String) -> bool:
 	if not _compiled or not _compiled.success:
 		return false
-	var match_result := StepMatcher.match_step(step_text, _compiled)
+	var match_result := StepMatcherScript.match_step(step_text, _compiled)
 	return match_result.matched
 
 
 ## Get match result with extracted arguments.
-func get_match(step_text: String) -> StepMatcher.MatchResult:
+func get_match(step_text: String) -> StepMatcherScript.MatchResult:
 	if not _compiled or not _compiled.success:
-		return StepMatcher.MatchResult.failure()
-	return StepMatcher.match_step(step_text, _compiled)
+		return StepMatcherScript.MatchResult.failure()
+	return StepMatcherScript.match_step(step_text, _compiled)
 
 
 ## Execute the step with the given context and step text.
@@ -83,7 +87,7 @@ func get_regex_pattern() -> String:
 
 
 ## Get the parameter types (for introspection).
-func get_parameter_types() -> Array[ParameterTypes.ParameterType]:
+func get_parameter_types() -> Array[ParameterTypesScript.ParameterType]:
 	if _compiled:
 		return _compiled.param_types
 	return []

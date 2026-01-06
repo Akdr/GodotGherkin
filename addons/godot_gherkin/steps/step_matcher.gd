@@ -1,6 +1,9 @@
-class_name StepMatcher
 extends RefCounted
 ## Compiles Cucumber Expression patterns to RegEx for step matching.
+##
+## Self-reference for headless mode compatibility
+const StepMatcherScript = preload("res://addons/godot_gherkin/steps/step_matcher.gd")
+const ParameterTypesScript = preload("res://addons/godot_gherkin/steps/parameter_types.gd")
 ##
 ## Supports:
 ## - {int}, {float}, {word}, {string}, {any}, {} placeholders
@@ -12,11 +15,11 @@ extends RefCounted
 class CompileResult:
 	extends RefCounted
 	var regex: RegEx = null
-	var param_types: Array[ParameterTypes.ParameterType] = []
+	var param_types: Array[ParameterTypesScript.ParameterType] = []
 	var error: String = ""
 	var success: bool = false
 
-	static func ok(p_regex: RegEx, p_types: Array[ParameterTypes.ParameterType]) -> CompileResult:
+	static func ok(p_regex: RegEx, p_types: Array[ParameterTypesScript.ParameterType]) -> CompileResult:
 		var result := CompileResult.new()
 		result.regex = p_regex
 		result.param_types = p_types
@@ -50,13 +53,13 @@ class MatchResult:
 
 ## Compile a Cucumber Expression pattern to a RegEx.
 static func compile_pattern(
-	pattern: String, registry: ParameterTypes.ParameterTypeRegistry = null
+	pattern: String, registry: ParameterTypesScript.ParameterTypeRegistry = null
 ) -> CompileResult:
 	if not registry:
-		registry = ParameterTypes.get_registry()
+		registry = ParameterTypesScript.get_registry()
 
 	var regex_str := "^"
-	var param_types: Array[ParameterTypes.ParameterType] = []
+	var param_types: Array[ParameterTypesScript.ParameterType] = []
 	var pos := 0
 	var length := pattern.length()
 

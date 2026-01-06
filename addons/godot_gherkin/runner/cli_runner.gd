@@ -1,6 +1,15 @@
-class_name GherkinCLI
 extends RefCounted
 ## Command-line interface for running Gherkin tests.
+##
+## Self-reference for headless mode compatibility
+const GherkinCLIScript = preload("res://addons/godot_gherkin/runner/cli_runner.gd")
+const GherkinTestRunnerScript = preload("res://addons/godot_gherkin/runner/test_runner.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+const GherkinParserScript = preload("res://addons/godot_gherkin/core/gherkin_parser.gd")
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
+const ConsoleReporterScript = preload("res://addons/godot_gherkin/runner/reporters/console_reporter.gd")
+const JsonReporterScript = preload("res://addons/godot_gherkin/runner/reporters/json_reporter.gd")
+const FileScannerScript = preload("res://addons/godot_gherkin/util/file_scanner.gd")
 ##
 ## Parses command-line arguments and orchestrates test execution.
 ## Designed for headless execution with AI assistants and CI/CD systems.
@@ -10,7 +19,7 @@ const EXIT_SUCCESS := 0
 const EXIT_FAILURE := 1
 const EXIT_ERROR := 2
 
-var _runner: GherkinTestRunner
+var _runner: GherkinTestRunnerScript
 var _reporter: Variant  # ConsoleReporter or JsonReporter
 var _scene_tree: SceneTree = null
 
@@ -40,7 +49,7 @@ func run(args: PackedStringArray) -> int:
 		return parse_result
 
 	# Create runner
-	_runner = GherkinTestRunner.new(_scene_tree)
+	_runner = GherkinTestRunnerScript.new(_scene_tree)
 	_runner.features_path = features_path
 	_runner.steps_path = steps_path
 	_runner.tag_filter = tags
@@ -62,12 +71,12 @@ func run(args: PackedStringArray) -> int:
 		return _do_dry_run()
 
 	# Run tests
-	var result: TestResult.SuiteResult
+	var result: TestResultScript.SuiteResult
 
 	if specific_feature:
 		# Run specific feature
 		var feature_result := await _runner.run_feature_file(specific_feature)
-		result = TestResult.SuiteResult.new()
+		result = TestResultScript.SuiteResult.new()
 		result.feature_results.append(feature_result)
 		result.total_duration_ms = feature_result.duration_ms
 	else:
@@ -163,28 +172,28 @@ func _parse_args(args: PackedStringArray) -> int:
 func _create_reporter() -> void:
 	match format:
 		"json":
-			_reporter = JsonReporter.new(output_path)
+			_reporter = JsonReporterScript.new(output_path)
 		_:
-			_reporter = ConsoleReporter.new(not no_color, verbose)
+			_reporter = ConsoleReporterScript.new(not no_color, verbose)
 
 
 ## Do a dry run (list scenarios without executing).
 func _do_dry_run() -> int:
 	print("Dry run - listing scenarios:\n")
 
-	var file_scanner := FileScanner.new()
-	var parser := GherkinParser.new()
+	var file_scanner := FileScannerScript.new()
+	var parser := GherkinParserScript.new()
 	var feature_files := file_scanner.find_feature_files(features_path)
 
 	for file_path in feature_files:
-		var content := FileScanner.read_file(file_path)
+		var content := FileScannerScript.read_file(file_path)
 		var feature := parser.parse(content, file_path)
 
 		print("Feature: %s" % feature.name)
 		print("  File: %s" % file_path)
 
 		for scenario in feature.scenarios:
-			if scenario is GherkinAST.ScenarioOutline:
+			if scenario is GherkinASTScript.ScenarioOutline:
 				var instance_count: int = scenario.get_instance_count()
 				print("  - %s (%d examples)" % [scenario.name, instance_count])
 			else:
@@ -200,23 +209,23 @@ func _on_run_started(feature_count: int) -> void:
 	_reporter.report_start(feature_count)
 
 
-func _on_feature_started(feature: GherkinAST.Feature) -> void:
+func _on_feature_started(feature: GherkinASTScript.Feature) -> void:
 	_reporter.report_feature_start(feature)
 
 
-func _on_feature_completed(result: TestResult.FeatureResult) -> void:
+func _on_feature_completed(result: TestResultScript.FeatureResult) -> void:
 	_reporter.report_feature_complete(result)
 
 
-func _on_scenario_started(scenario: GherkinAST.Scenario) -> void:
+func _on_scenario_started(scenario: GherkinASTScript.Scenario) -> void:
 	_reporter.report_scenario_start(scenario)
 
 
-func _on_scenario_completed(result: TestResult.ScenarioResult) -> void:
+func _on_scenario_completed(result: TestResultScript.ScenarioResult) -> void:
 	_reporter.report_scenario_complete(result)
 
 
-func _on_run_completed(_result: TestResult.SuiteResult) -> void:
+func _on_run_completed(_result: TestResultScript.SuiteResult) -> void:
 	pass  # Results are reported in run()
 
 

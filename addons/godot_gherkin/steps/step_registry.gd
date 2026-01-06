@@ -1,23 +1,26 @@
-class_name StepRegistry
 extends RefCounted
 ## Central registration and lookup for step definitions.
+##
+## Self-reference for headless mode compatibility
+const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
+const StepDefinitionScript = preload("res://addons/godot_gherkin/steps/step_definition.gd")
 ##
 ## Provides the user-facing API for registering Given/When/Then steps
 ## and finding matching step definitions for execution.
 
-var _given_steps: Array[StepDefinition] = []
-var _when_steps: Array[StepDefinition] = []
-var _then_steps: Array[StepDefinition] = []
-var _any_steps: Array[StepDefinition] = []  # Steps that match any keyword
+var _given_steps: Array[StepDefinitionScript] = []
+var _when_steps: Array[StepDefinitionScript] = []
+var _then_steps: Array[StepDefinitionScript] = []
+var _any_steps: Array[StepDefinitionScript] = []  # Steps that match any keyword
 
 ## Global singleton instance.
-static var _instance: StepRegistry = null
+static var _instance: StepRegistryScript = null
 
 
 ## Get the global singleton instance.
-static func get_instance() -> StepRegistry:
+static func get_instance() -> StepRegistryScript:
 	if not _instance:
-		_instance = StepRegistry.new()
+		_instance = StepRegistryScript.new()
 	return _instance
 
 
@@ -30,29 +33,29 @@ static func reset_instance() -> void:
 
 
 ## Register a Given step definition.
-func given(pattern: String, callback: Callable) -> StepDefinition:
-	var step := StepDefinition.new(pattern, callback, "Given")
+func given(pattern: String, callback: Callable) -> StepDefinitionScript:
+	var step := StepDefinitionScript.new(pattern, callback, "Given")
 	_given_steps.append(step)
 	return step
 
 
 ## Register a When step definition.
-func when(pattern: String, callback: Callable) -> StepDefinition:
-	var step := StepDefinition.new(pattern, callback, "When")
+func when(pattern: String, callback: Callable) -> StepDefinitionScript:
+	var step := StepDefinitionScript.new(pattern, callback, "When")
 	_when_steps.append(step)
 	return step
 
 
 ## Register a Then step definition.
-func then(pattern: String, callback: Callable) -> StepDefinition:
-	var step := StepDefinition.new(pattern, callback, "Then")
+func then(pattern: String, callback: Callable) -> StepDefinitionScript:
+	var step := StepDefinitionScript.new(pattern, callback, "Then")
 	_then_steps.append(step)
 	return step
 
 
 ## Register a step that matches any keyword (Given/When/Then/And/But).
-func step(pattern: String, callback: Callable) -> StepDefinition:
-	var step_def := StepDefinition.new(pattern, callback, "")
+func step(pattern: String, callback: Callable) -> StepDefinitionScript:
+	var step_def := StepDefinitionScript.new(pattern, callback, "")
 	_any_steps.append(step_def)
 	return step_def
 
@@ -62,8 +65,8 @@ func step(pattern: String, callback: Callable) -> StepDefinition:
 
 ## Find a matching step definition for the given keyword and text.
 ## Returns null if no match is found.
-func find_step(keyword: String, text: String) -> StepDefinition:
-	var steps_to_search: Array[StepDefinition] = []
+func find_step(keyword: String, text: String) -> StepDefinitionScript:
+	var steps_to_search: Array[StepDefinitionScript] = []
 
 	# Determine which step lists to search based on keyword
 	match keyword:
@@ -91,9 +94,9 @@ func find_step(keyword: String, text: String) -> StepDefinition:
 
 
 ## Find all matching step definitions (useful for detecting ambiguous steps).
-func find_all_steps(keyword: String, text: String) -> Array[StepDefinition]:
-	var matches: Array[StepDefinition] = []
-	var steps_to_search: Array[StepDefinition] = []
+func find_all_steps(keyword: String, text: String) -> Array[StepDefinitionScript]:
+	var matches: Array[StepDefinitionScript] = []
+	var steps_to_search: Array[StepDefinitionScript] = []
 
 	match keyword:
 		"Given":
@@ -135,28 +138,28 @@ func count() -> int:
 
 
 ## Get all registered Given steps.
-func get_given_steps() -> Array[StepDefinition]:
+func get_given_steps() -> Array[StepDefinitionScript]:
 	return _given_steps.duplicate()
 
 
 ## Get all registered When steps.
-func get_when_steps() -> Array[StepDefinition]:
+func get_when_steps() -> Array[StepDefinitionScript]:
 	return _when_steps.duplicate()
 
 
 ## Get all registered Then steps.
-func get_then_steps() -> Array[StepDefinition]:
+func get_then_steps() -> Array[StepDefinitionScript]:
 	return _then_steps.duplicate()
 
 
 ## Get all registered universal steps.
-func get_any_steps() -> Array[StepDefinition]:
+func get_any_steps() -> Array[StepDefinitionScript]:
 	return _any_steps.duplicate()
 
 
 ## Get all registered steps across all categories.
-func get_all_steps() -> Array[StepDefinition]:
-	var all: Array[StepDefinition] = []
+func get_all_steps() -> Array[StepDefinitionScript]:
+	var all: Array[StepDefinitionScript] = []
 	all.append_array(_given_steps)
 	all.append_array(_when_steps)
 	all.append_array(_then_steps)

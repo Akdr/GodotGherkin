@@ -1,6 +1,8 @@
-class_name ParameterTypes
 extends RefCounted
 ## Built-in and custom parameter type definitions for Cucumber Expressions.
+##
+## Self-reference for headless mode compatibility
+const ParameterTypesScript = preload("res://addons/godot_gherkin/steps/parameter_types.gd")
 ##
 ## Parameter types define how to match and transform step parameters.
 
@@ -65,19 +67,19 @@ class ParameterTypeRegistry:
 
 	func _init() -> void:
 		# Register built-in types
-		register(ParameterTypes.int_type)
-		register(ParameterTypes.float_type)
-		register(ParameterTypes.word_type)
-		register(ParameterTypes.string_type)
-		register(ParameterTypes.any_type)
-		register(ParameterTypes.anonymous_type)
+		register(ParameterTypesScript.int_type)
+		register(ParameterTypesScript.float_type)
+		register(ParameterTypesScript.word_type)
+		register(ParameterTypesScript.string_type)
+		register(ParameterTypesScript.any_type)
+		register(ParameterTypesScript.anonymous_type)
 
 	## Register a parameter type.
-	func register(param_type: ParameterTypes.ParameterType) -> void:
+	func register(param_type: ParameterTypesScript.ParameterType) -> void:
 		_types[param_type.name] = param_type
 
 	## Get a parameter type by name.
-	func get_type(name: String) -> ParameterTypes.ParameterType:
+	func get_type(name: String) -> ParameterTypesScript.ParameterType:
 		return _types.get(name)
 
 	## Check if a type exists.
@@ -86,7 +88,7 @@ class ParameterTypeRegistry:
 
 	## Define a custom parameter type.
 	func define_type(name: String, regex: String, transformer: Callable) -> void:
-		register(ParameterTypes.ParameterType.new(name, regex, transformer))
+		register(ParameterTypesScript.ParameterType.new(name, regex, transformer))
 
 	## Get all registered type names.
 	func get_type_names() -> Array[String]:

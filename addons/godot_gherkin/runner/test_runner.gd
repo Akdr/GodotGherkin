@@ -1,20 +1,29 @@
-class_name GherkinTestRunner
 extends RefCounted
 ## Orchestrates test execution across features and scenarios.
+##
+## Self-reference for headless mode compatibility
+const GherkinTestRunnerScript = preload("res://addons/godot_gherkin/runner/test_runner.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+const GherkinParserScript = preload("res://addons/godot_gherkin/core/gherkin_parser.gd")
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
+const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
+const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
+const ScenarioExecutorScript = preload("res://addons/godot_gherkin/runner/scenario_executor.gd")
+const FileScannerScript = preload("res://addons/godot_gherkin/util/file_scanner.gd")
 ##
 ## Discovers feature files, loads step definitions, parses features,
 ## and executes scenarios with result aggregation.
 
 signal run_started(feature_count: int)
-signal run_completed(result: TestResult.SuiteResult)
-signal feature_started(feature: GherkinAST.Feature)
-signal feature_completed(result: TestResult.FeatureResult)
-signal scenario_started(scenario: GherkinAST.Scenario)
-signal scenario_completed(result: TestResult.ScenarioResult)
+signal run_completed(result: TestResultScript.SuiteResult)
+signal feature_started(feature: GherkinASTScript.Feature)
+signal feature_completed(result: TestResultScript.FeatureResult)
+signal scenario_started(scenario: GherkinASTScript.Scenario)
+signal scenario_completed(result: TestResultScript.ScenarioResult)
 
-var _registry: StepRegistry
-var _parser: GherkinParser
-var _file_scanner: FileScanner
+var _registry: StepRegistryScript
+var _parser: GherkinParserScript
+var _file_scanner: FileScannerScript
 var _scene_tree: SceneTree = null
 var _step_instances: Array = []  # Keep step definition instances alive
 
@@ -26,9 +35,9 @@ var fail_fast: bool = false
 
 
 func _init(scene_tree: SceneTree = null) -> void:
-	_registry = StepRegistry.new()
-	_parser = GherkinParser.new()
-	_file_scanner = FileScanner.new()
+	_registry = StepRegistryScript.new()
+	_parser = GherkinParserScript.new()
+	_file_scanner = FileScannerScript.new()
 	_scene_tree = scene_tree
 
 
@@ -38,13 +47,13 @@ func set_scene_tree(tree: SceneTree) -> void:
 
 
 ## Get the step registry for manual step registration.
-func get_registry() -> StepRegistry:
+func get_registry() -> StepRegistryScript:
 	return _registry
 
 
 ## Run all tests in the configured paths.
-func run_all() -> TestResult.SuiteResult:
-	var suite_result := TestResult.SuiteResult.new()
+func run_all() -> TestResultScript.SuiteResult:
+	var suite_result := TestResultScript.SuiteResult.new()
 	suite_result.start_time = Time.get_ticks_msec()
 
 	# Load step definitions
@@ -60,9 +69,9 @@ func run_all() -> TestResult.SuiteResult:
 
 		# Collect undefined steps
 		for scenario in feature_result.scenario_results:
-			if scenario.status == TestResult.Status.UNDEFINED:
+			if scenario.status == TestResultScript.Status.UNDEFINED:
 				for step in scenario.step_results:
-					if step.status == TestResult.Status.UNDEFINED:
+					if step.status == TestResultScript.Status.UNDEFINED:
 						var step_sig := "%s %s" % [step.keyword, step.step_text]
 						if not suite_result.undefined_steps.has(step_sig):
 							suite_result.undefined_steps.append(step_sig)
@@ -78,10 +87,10 @@ func run_all() -> TestResult.SuiteResult:
 
 
 ## Run a specific feature file.
-func run_feature_file(file_path: String) -> TestResult.FeatureResult:
-	var content := FileScanner.read_file(file_path)
+func run_feature_file(file_path: String) -> TestResultScript.FeatureResult:
+	var content := FileScannerScript.read_file(file_path)
 	if content.is_empty():
-		var empty_result := TestResult.FeatureResult.new()
+		var empty_result := TestResultScript.FeatureResult.new()
 		empty_result.file_path = file_path
 		empty_result.feature_name = "Error: Could not read file"
 		return empty_result
@@ -91,8 +100,8 @@ func run_feature_file(file_path: String) -> TestResult.FeatureResult:
 
 
 ## Run a parsed feature.
-func run_feature(feature: GherkinAST.Feature) -> TestResult.FeatureResult:
-	var result := TestResult.FeatureResult.new()
+func run_feature(feature: GherkinASTScript.Feature) -> TestResultScript.FeatureResult:
+	var result := TestResultScript.FeatureResult.new()
 	result.feature_name = feature.name
 	result.file_path = feature.source_path
 	result.tags = feature.get_tag_names()
@@ -100,8 +109,8 @@ func run_feature(feature: GherkinAST.Feature) -> TestResult.FeatureResult:
 	feature_started.emit(feature)
 	var start_time := Time.get_ticks_msec()
 
-	var executor := ScenarioExecutor.new(_registry)
-	executor.set_context(TestContext.new(_scene_tree))
+	var executor := ScenarioExecutorScript.new(_registry)
+	executor.set_context(TestContextScript.new(_scene_tree))
 
 	# Run scenarios at feature level
 	for scenario_item in feature.scenarios:
@@ -109,9 +118,9 @@ func run_feature(feature: GherkinAST.Feature) -> TestResult.FeatureResult:
 		if not _matches_tag_filter(scenario_item):
 			continue
 
-		var scenario_result: TestResult.ScenarioResult
+		var scenario_result: TestResultScript.ScenarioResult
 
-		if scenario_item is GherkinAST.ScenarioOutline:
+		if scenario_item is GherkinASTScript.ScenarioOutline:
 			# Expand scenario outline into multiple scenarios
 			var expanded := _expand_scenario_outline(scenario_item)
 			for expanded_scenario in expanded:
@@ -144,9 +153,9 @@ func run_feature(feature: GherkinAST.Feature) -> TestResult.FeatureResult:
 			if not _matches_tag_filter(scenario_item):
 				continue
 
-			var scenario_result: TestResult.ScenarioResult
+			var scenario_result: TestResultScript.ScenarioResult
 
-			if scenario_item is GherkinAST.ScenarioOutline:
+			if scenario_item is GherkinASTScript.ScenarioOutline:
 				var expanded := _expand_scenario_outline(scenario_item)
 				for expanded_scenario in expanded:
 					scenario_started.emit(expanded_scenario)
@@ -179,8 +188,8 @@ func run_feature(feature: GherkinAST.Feature) -> TestResult.FeatureResult:
 
 
 ## Expand a scenario outline into concrete scenarios.
-func _expand_scenario_outline(outline: GherkinAST.ScenarioOutline) -> Array[GherkinAST.Scenario]:
-	var scenarios: Array[GherkinAST.Scenario] = []
+func _expand_scenario_outline(outline: GherkinASTScript.ScenarioOutline) -> Array[GherkinASTScript.Scenario]:
+	var scenarios: Array[GherkinASTScript.Scenario] = []
 
 	for examples in outline.examples:
 		if not examples.table or examples.table.rows.size() < 2:
@@ -191,14 +200,14 @@ func _expand_scenario_outline(outline: GherkinAST.ScenarioOutline) -> Array[Gher
 
 		for row_idx in range(data_rows.size()):
 			var row := data_rows[row_idx]
-			var scenario := GherkinAST.Scenario.new()
+			var scenario := GherkinASTScript.Scenario.new()
 			scenario.name = "%s (Example %d)" % [outline.name, row_idx + 1]
 			scenario.tags = outline.tags.duplicate()
 			scenario.location = outline.location
 
 			# Replace placeholders in steps
 			for step in outline.steps:
-				var new_step := GherkinAST.Step.new()
+				var new_step := GherkinASTScript.Step.new()
 				new_step.keyword = step.keyword
 				new_step.location = step.location
 				new_step.text = step.text
@@ -223,9 +232,9 @@ func _matches_tag_filter(scenario: Variant) -> bool:
 		return true
 
 	var scenario_tags: Array[String] = []
-	if scenario is GherkinAST.Scenario:
+	if scenario is GherkinASTScript.Scenario:
 		scenario_tags = scenario.get_tag_names()
-	elif scenario is GherkinAST.ScenarioOutline:
+	elif scenario is GherkinASTScript.ScenarioOutline:
 		scenario_tags = scenario.get_tag_names()
 
 	for filter_tag in tag_filter:
@@ -253,7 +262,7 @@ func _matches_tag_filter(scenario: Variant) -> bool:
 func _load_steps(path: String) -> void:
 	_registry.clear()
 
-	if not FileScanner.dir_exists(path):
+	if not FileScannerScript.dir_exists(path):
 		push_warning("GherkinTestRunner: Steps directory not found: %s" % path)
 		return
 

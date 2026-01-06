@@ -1,18 +1,22 @@
-class_name GherkinParser
 extends RefCounted
 ## Recursive descent parser for Gherkin feature files.
 ##
+## Self-reference for headless mode compatibility
+const GherkinParserScript = preload("res://addons/godot_gherkin/core/gherkin_parser.gd")
+const GherkinLexerScript = preload("res://addons/godot_gherkin/core/gherkin_lexer.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+##
 ## Builds an AST from a token stream produced by GherkinLexer.
 
-var _tokens: Array[GherkinLexer.Token] = []
+var _tokens: Array[GherkinLexerScript.Token] = []
 var _current: int = 0
 var _errors: Array[String] = []
 var _file_path: String = ""
 
 
 ## Parse the given source text and return a Feature AST node.
-func parse(source: String, file_path: String = "") -> GherkinAST.Feature:
-	var lexer := GherkinLexer.new()
+func parse(source: String, file_path: String = "") -> GherkinASTScript.Feature:
+	var lexer := GherkinLexerScript.new()
 	_tokens = lexer.tokenize(source)
 	_current = 0
 	_errors = []
@@ -22,7 +26,7 @@ func parse(source: String, file_path: String = "") -> GherkinAST.Feature:
 
 
 ## Parse from pre-tokenized tokens.
-func parse_tokens(tokens: Array[GherkinLexer.Token], file_path: String = "") -> GherkinAST.Feature:
+func parse_tokens(tokens: Array[GherkinLexerScript.Token], file_path: String = "") -> GherkinASTScript.Feature:
 	_tokens = tokens
 	_current = 0
 	_errors = []
@@ -45,8 +49,8 @@ func has_errors() -> bool:
 
 
 ## Parse a Feature (top-level construct).
-func _parse_feature() -> GherkinAST.Feature:
-	var feature := GherkinAST.Feature.new()
+func _parse_feature() -> GherkinASTScript.Feature:
+	var feature := GherkinASTScript.Feature.new()
 	feature.source_path = _file_path
 
 	# Skip leading empty lines and comments, collect tags
@@ -55,7 +59,7 @@ func _parse_feature() -> GherkinAST.Feature:
 	_skip_empty_and_comments()
 
 	# Expect Feature keyword
-	if not _check(GherkinLexer.TokenType.FEATURE):
+	if not _check(GherkinLexerScript.TokenType.FEATURE):
 		_error("Expected 'Feature:' keyword")
 		return feature
 
@@ -67,7 +71,7 @@ func _parse_feature() -> GherkinAST.Feature:
 	feature.description = _parse_description()
 
 	# Parse optional Background at feature level
-	if _check(GherkinLexer.TokenType.BACKGROUND):
+	if _check(GherkinLexerScript.TokenType.BACKGROUND):
 		feature.background = _parse_background()
 
 	# Parse scenarios and rules
@@ -77,26 +81,26 @@ func _parse_feature() -> GherkinAST.Feature:
 		if _is_at_end():
 			break
 
-		if _check(GherkinLexer.TokenType.RULE):
+		if _check(GherkinLexerScript.TokenType.RULE):
 			feature.rules.append(_parse_rule())
-		elif _check(GherkinLexer.TokenType.SCENARIO):
+		elif _check(GherkinLexerScript.TokenType.SCENARIO):
 			feature.scenarios.append(_parse_scenario())
-		elif _check(GherkinLexer.TokenType.SCENARIO_OUTLINE):
+		elif _check(GherkinLexerScript.TokenType.SCENARIO_OUTLINE):
 			feature.scenarios.append(_parse_scenario_outline())
-		elif _check(GherkinLexer.TokenType.TAG):
+		elif _check(GherkinLexerScript.TokenType.TAG):
 			# Tags for upcoming scenario
 			var tags := _parse_tags()
 			_skip_empty_and_comments()
 
-			if _check(GherkinLexer.TokenType.SCENARIO):
+			if _check(GherkinLexerScript.TokenType.SCENARIO):
 				var scenario := _parse_scenario()
 				scenario.tags.append_array(tags)
 				feature.scenarios.append(scenario)
-			elif _check(GherkinLexer.TokenType.SCENARIO_OUTLINE):
+			elif _check(GherkinLexerScript.TokenType.SCENARIO_OUTLINE):
 				var outline := _parse_scenario_outline()
 				outline.tags.append_array(tags)
 				feature.scenarios.append(outline)
-			elif _check(GherkinLexer.TokenType.RULE):
+			elif _check(GherkinLexerScript.TokenType.RULE):
 				var rule := _parse_rule()
 				rule.tags.append_array(tags)
 				feature.rules.append(rule)
@@ -109,8 +113,8 @@ func _parse_feature() -> GherkinAST.Feature:
 
 
 ## Parse a Rule section.
-func _parse_rule() -> GherkinAST.Rule:
-	var rule := GherkinAST.Rule.new()
+func _parse_rule() -> GherkinASTScript.Rule:
+	var rule := GherkinASTScript.Rule.new()
 
 	var rule_token := _advance()  # Consume RULE token
 	rule.name = rule_token.value
@@ -120,7 +124,7 @@ func _parse_rule() -> GherkinAST.Rule:
 	rule.description = _parse_description()
 
 	# Parse optional Background
-	if _check(GherkinLexer.TokenType.BACKGROUND):
+	if _check(GherkinLexerScript.TokenType.BACKGROUND):
 		rule.background = _parse_background()
 
 	# Parse scenarios within the rule
@@ -130,19 +134,19 @@ func _parse_rule() -> GherkinAST.Rule:
 		if _is_at_end() or _check_structure_boundary():
 			break
 
-		if _check(GherkinLexer.TokenType.SCENARIO):
+		if _check(GherkinLexerScript.TokenType.SCENARIO):
 			rule.scenarios.append(_parse_scenario())
-		elif _check(GherkinLexer.TokenType.SCENARIO_OUTLINE):
+		elif _check(GherkinLexerScript.TokenType.SCENARIO_OUTLINE):
 			rule.scenarios.append(_parse_scenario_outline())
-		elif _check(GherkinLexer.TokenType.TAG):
+		elif _check(GherkinLexerScript.TokenType.TAG):
 			var tags := _parse_tags()
 			_skip_empty_and_comments()
 
-			if _check(GherkinLexer.TokenType.SCENARIO):
+			if _check(GherkinLexerScript.TokenType.SCENARIO):
 				var scenario := _parse_scenario()
 				scenario.tags.append_array(tags)
 				rule.scenarios.append(scenario)
-			elif _check(GherkinLexer.TokenType.SCENARIO_OUTLINE):
+			elif _check(GherkinLexerScript.TokenType.SCENARIO_OUTLINE):
 				var outline := _parse_scenario_outline()
 				outline.tags.append_array(tags)
 				rule.scenarios.append(outline)
@@ -155,8 +159,8 @@ func _parse_rule() -> GherkinAST.Rule:
 
 
 ## Parse a Background section.
-func _parse_background() -> GherkinAST.Background:
-	var background := GherkinAST.Background.new()
+func _parse_background() -> GherkinASTScript.Background:
+	var background := GherkinASTScript.Background.new()
 
 	var bg_token := _advance()  # Consume BACKGROUND token
 	background.name = bg_token.value
@@ -172,8 +176,8 @@ func _parse_background() -> GherkinAST.Background:
 
 
 ## Parse a Scenario.
-func _parse_scenario() -> GherkinAST.Scenario:
-	var scenario := GherkinAST.Scenario.new()
+func _parse_scenario() -> GherkinASTScript.Scenario:
+	var scenario := GherkinASTScript.Scenario.new()
 
 	var sc_token := _advance()  # Consume SCENARIO token
 	scenario.name = sc_token.value
@@ -189,8 +193,8 @@ func _parse_scenario() -> GherkinAST.Scenario:
 
 
 ## Parse a Scenario Outline.
-func _parse_scenario_outline() -> GherkinAST.ScenarioOutline:
-	var outline := GherkinAST.ScenarioOutline.new()
+func _parse_scenario_outline() -> GherkinASTScript.ScenarioOutline:
+	var outline := GherkinASTScript.ScenarioOutline.new()
 
 	var so_token := _advance()  # Consume SCENARIO_OUTLINE token
 	outline.name = so_token.value
@@ -203,20 +207,20 @@ func _parse_scenario_outline() -> GherkinAST.ScenarioOutline:
 	outline.steps = _parse_steps()
 
 	# Parse Examples sections
-	while _check(GherkinLexer.TokenType.EXAMPLES) or _check(GherkinLexer.TokenType.TAG):
+	while _check(GherkinLexerScript.TokenType.EXAMPLES) or _check(GherkinLexerScript.TokenType.TAG):
 		_skip_empty_and_comments()
 
-		if _check(GherkinLexer.TokenType.TAG):
+		if _check(GherkinLexerScript.TokenType.TAG):
 			var tags := _parse_tags()
 			_skip_empty_and_comments()
 
-			if _check(GherkinLexer.TokenType.EXAMPLES):
+			if _check(GherkinLexerScript.TokenType.EXAMPLES):
 				var examples := _parse_examples()
 				examples.tags.append_array(tags)
 				outline.examples.append(examples)
 			else:
 				break
-		elif _check(GherkinLexer.TokenType.EXAMPLES):
+		elif _check(GherkinLexerScript.TokenType.EXAMPLES):
 			outline.examples.append(_parse_examples())
 		else:
 			break
@@ -225,8 +229,8 @@ func _parse_scenario_outline() -> GherkinAST.ScenarioOutline:
 
 
 ## Parse an Examples section.
-func _parse_examples() -> GherkinAST.Examples:
-	var examples := GherkinAST.Examples.new()
+func _parse_examples() -> GherkinASTScript.Examples:
+	var examples := GherkinASTScript.Examples.new()
 
 	var ex_token := _advance()  # Consume EXAMPLES token
 	examples.name = ex_token.value
@@ -236,17 +240,17 @@ func _parse_examples() -> GherkinAST.Examples:
 	examples.description = _parse_description()
 
 	# Parse table
-	if _check(GherkinLexer.TokenType.TABLE_ROW):
+	if _check(GherkinLexerScript.TokenType.TABLE_ROW):
 		examples.table = _parse_data_table()
 
 	return examples
 
 
 ## Parse steps until a non-step token is encountered.
-func _parse_steps() -> Array[GherkinAST.Step]:
-	var steps: Array[GherkinAST.Step] = []
+func _parse_steps() -> Array[GherkinASTScript.Step]:
+	var steps: Array[GherkinASTScript.Step] = []
 
-	while GherkinLexer.is_step_keyword(_peek().type):
+	while GherkinLexerScript.is_step_keyword(_peek().type):
 		var step := _parse_step()
 		if step:
 			steps.append(step)
@@ -255,28 +259,28 @@ func _parse_steps() -> Array[GherkinAST.Step]:
 
 
 ## Parse a single step.
-func _parse_step() -> GherkinAST.Step:
-	var step := GherkinAST.Step.new()
+func _parse_step() -> GherkinASTScript.Step:
+	var step := GherkinASTScript.Step.new()
 
 	var step_token := _advance()
-	step.keyword = GherkinLexer.token_type_to_keyword(step_token.type)
+	step.keyword = GherkinLexerScript.token_type_to_keyword(step_token.type)
 	step.text = step_token.value
 	step.location = _make_location(step_token)
 
 	# Check for step argument (doc string or data table)
 	_skip_empty_lines()
 
-	if _check(GherkinLexer.TokenType.DOC_STRING):
+	if _check(GherkinLexerScript.TokenType.DOC_STRING):
 		step.argument = _parse_doc_string()
-	elif _check(GherkinLexer.TokenType.TABLE_ROW):
+	elif _check(GherkinLexerScript.TokenType.TABLE_ROW):
 		step.argument = _parse_data_table()
 
 	return step
 
 
 ## Parse a doc string.
-func _parse_doc_string() -> GherkinAST.DocString:
-	var doc := GherkinAST.DocString.new()
+func _parse_doc_string() -> GherkinASTScript.DocString:
+	var doc := GherkinASTScript.DocString.new()
 
 	var doc_token := _advance()
 	doc.location = _make_location(doc_token)
@@ -298,11 +302,11 @@ func _parse_doc_string() -> GherkinAST.DocString:
 
 
 ## Parse a data table.
-func _parse_data_table() -> GherkinAST.DataTable:
-	var table := GherkinAST.DataTable.new()
+func _parse_data_table() -> GherkinASTScript.DataTable:
+	var table := GherkinASTScript.DataTable.new()
 	table.location = _make_location(_peek())
 
-	while _check(GherkinLexer.TokenType.TABLE_ROW):
+	while _check(GherkinLexerScript.TokenType.TABLE_ROW):
 		var row := _parse_table_row()
 		if row:
 			table.rows.append(row)
@@ -311,8 +315,8 @@ func _parse_data_table() -> GherkinAST.DataTable:
 
 
 ## Parse a table row.
-func _parse_table_row() -> GherkinAST.TableRow:
-	var row := GherkinAST.TableRow.new()
+func _parse_table_row() -> GherkinASTScript.TableRow:
+	var row := GherkinASTScript.TableRow.new()
 
 	var row_token := _advance()
 	row.location = _make_location(row_token)
@@ -329,7 +333,7 @@ func _parse_table_row() -> GherkinAST.TableRow:
 	# Split by pipe and trim each cell
 	var cell_values := row_text.split("|")
 	for cell_value in cell_values:
-		var cell := GherkinAST.TableCell.new()
+		var cell := GherkinASTScript.TableCell.new()
 		cell.value = cell_value.strip_edges()
 		cell.location = row.location
 		row.cells.append(cell)
@@ -338,10 +342,10 @@ func _parse_table_row() -> GherkinAST.TableRow:
 
 
 ## Parse tags (one or more @ prefixed items).
-func _parse_tags() -> Array[GherkinAST.Tag]:
-	var tags: Array[GherkinAST.Tag] = []
+func _parse_tags() -> Array[GherkinASTScript.Tag]:
+	var tags: Array[GherkinASTScript.Tag] = []
 
-	while _check(GherkinLexer.TokenType.TAG):
+	while _check(GherkinLexerScript.TokenType.TAG):
 		var tag_token := _advance()
 		var tag_line := tag_token.value
 
@@ -350,7 +354,7 @@ func _parse_tags() -> Array[GherkinAST.Tag]:
 		for part in tag_parts:
 			part = part.strip_edges()
 			if part.begins_with("@"):
-				var tag := GherkinAST.Tag.new()
+				var tag := GherkinASTScript.Tag.new()
 				tag.name = part
 				tag.location = _make_location(tag_token)
 				tags.append(tag)
@@ -377,7 +381,7 @@ func _parse_description() -> String:
 
 
 ## Check if current token matches the given type.
-func _check(type: GherkinLexer.TokenType) -> bool:
+func _check(type: GherkinLexerScript.TokenType) -> bool:
 	if _is_at_end():
 		return false
 	return _peek().type == type
@@ -388,25 +392,25 @@ func _check_structure_boundary() -> bool:
 	if _is_at_end():
 		return true
 	var t := _peek().type
-	return t == GherkinLexer.TokenType.RULE or t == GherkinLexer.TokenType.FEATURE
+	return t == GherkinLexerScript.TokenType.RULE or t == GherkinLexerScript.TokenType.FEATURE
 
 
 ## Get the current token without advancing.
-func _peek() -> GherkinLexer.Token:
+func _peek() -> GherkinLexerScript.Token:
 	if _current >= _tokens.size():
-		return GherkinLexer.Token.new(GherkinLexer.TokenType.EOF)
+		return GherkinLexerScript.Token.new(GherkinLexerScript.TokenType.EOF)
 	return _tokens[_current]
 
 
 ## Get the previous token.
-func _previous() -> GherkinLexer.Token:
+func _previous() -> GherkinLexerScript.Token:
 	if _current <= 0:
-		return GherkinLexer.Token.new(GherkinLexer.TokenType.EOF)
+		return GherkinLexerScript.Token.new(GherkinLexerScript.TokenType.EOF)
 	return _tokens[_current - 1]
 
 
 ## Advance to the next token and return the current one.
-func _advance() -> GherkinLexer.Token:
+func _advance() -> GherkinLexerScript.Token:
 	if not _is_at_end():
 		_current += 1
 	return _previous()
@@ -414,24 +418,24 @@ func _advance() -> GherkinLexer.Token:
 
 ## Check if we've reached the end of tokens.
 func _is_at_end() -> bool:
-	return _current >= _tokens.size() or _peek().type == GherkinLexer.TokenType.EOF
+	return _current >= _tokens.size() or _peek().type == GherkinLexerScript.TokenType.EOF
 
 
 ## Skip empty lines.
 func _skip_empty_lines() -> void:
-	while _check(GherkinLexer.TokenType.EMPTY_LINE):
+	while _check(GherkinLexerScript.TokenType.EMPTY_LINE):
 		_advance()
 
 
 ## Skip empty lines and comments.
 func _skip_empty_and_comments() -> void:
-	while _check(GherkinLexer.TokenType.EMPTY_LINE) or _check(GherkinLexer.TokenType.COMMENT):
+	while _check(GherkinLexerScript.TokenType.EMPTY_LINE) or _check(GherkinLexerScript.TokenType.COMMENT):
 		_advance()
 
 
 ## Create a Location from a token.
-func _make_location(token: GherkinLexer.Token) -> GherkinAST.Location:
-	return GherkinAST.Location.new(token.line, token.column)
+func _make_location(token: GherkinLexerScript.Token) -> GherkinASTScript.Location:
+	return GherkinASTScript.Location.new(token.line, token.column)
 
 
 ## Record a parsing error.

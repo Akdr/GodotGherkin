@@ -1,42 +1,48 @@
-class_name ScenarioExecutor
 extends RefCounted
 ## Executes a single scenario with proper step handling.
+##
+## Self-reference for headless mode compatibility
+const ScenarioExecutorScript = preload("res://addons/godot_gherkin/runner/scenario_executor.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
+const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
+const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
 ##
 ## Manages step execution order, And/But keyword resolution,
 ## async step support, and result collection.
 
-signal step_started(step: GherkinAST.Step)
-signal step_completed(step: GherkinAST.Step, result: TestResult.StepResult)
+signal step_started(step: GherkinASTScript.Step)
+signal step_completed(step: GherkinASTScript.Step, result: TestResultScript.StepResult)
 
-var _registry: StepRegistry
-var _context: TestContext
+var _registry: StepRegistryScript
+var _context: TestContextScript
 var _previous_keyword: String = "Given"
 
 
-func _init(registry: StepRegistry, context: TestContext = null) -> void:
+func _init(registry: StepRegistryScript, context: TestContextScript = null) -> void:
 	_registry = registry
-	_context = context if context else TestContext.new()
+	_context = context if context else TestContextScript.new()
 
 
 ## Set the test context.
-func set_context(context: TestContext) -> void:
+func set_context(context: TestContextScript) -> void:
 	_context = context
 
 
 ## Get the current test context.
-func get_context() -> TestContext:
+func get_context() -> TestContextScript:
 	return _context
 
 
 ## Execute a scenario with optional background steps.
 func execute_scenario(
-	scenario: GherkinAST.Scenario, background: GherkinAST.Background = null
-) -> TestResult.ScenarioResult:
-	var result := TestResult.ScenarioResult.new()
+	scenario: GherkinASTScript.Scenario, background: GherkinASTScript.Background = null
+) -> TestResultScript.ScenarioResult:
+	var result := TestResultScript.ScenarioResult.new()
 	result.scenario_name = scenario.name
 	result.tags = scenario.get_tag_names()
 	result.line = scenario.location.line if scenario.location else 0
-	result.status = TestResult.Status.PASSED
+	result.status = TestResultScript.Status.PASSED
 
 	var start_time := Time.get_ticks_msec()
 
@@ -50,7 +56,7 @@ func execute_scenario(
 			var step_result := await _execute_step(step)
 			result.step_results.append(step_result)
 
-			if step_result.status != TestResult.Status.PASSED:
+			if step_result.status != TestResultScript.Status.PASSED:
 				result.status = step_result.status
 				result.error_message = step_result.error_message
 				# Skip remaining steps on failure
@@ -58,12 +64,12 @@ func execute_scenario(
 				break
 
 	# Execute scenario steps (only if background passed)
-	if result.status == TestResult.Status.PASSED:
+	if result.status == TestResultScript.Status.PASSED:
 		for step in scenario.steps:
 			var step_result := await _execute_step(step)
 			result.step_results.append(step_result)
 
-			if step_result.status != TestResult.Status.PASSED:
+			if step_result.status != TestResultScript.Status.PASSED:
 				result.status = step_result.status
 				result.error_message = step_result.error_message
 				# Skip remaining steps
@@ -76,8 +82,8 @@ func execute_scenario(
 
 
 ## Execute a single step.
-func _execute_step(step: GherkinAST.Step) -> TestResult.StepResult:
-	var result := TestResult.StepResult.new()
+func _execute_step(step: GherkinASTScript.Step) -> TestResultScript.StepResult:
+	var result := TestResultScript.StepResult.new()
 	result.step_text = step.text
 	result.keyword = step.keyword
 	result.line = step.location.line if step.location else 0
@@ -92,7 +98,7 @@ func _execute_step(step: GherkinAST.Step) -> TestResult.StepResult:
 	var step_def := _registry.find_step(effective_keyword, step.text)
 
 	if not step_def:
-		result.status = TestResult.Status.UNDEFINED
+		result.status = TestResultScript.Status.UNDEFINED
 		result.error_message = "No step definition found for: %s %s" % [step.keyword, step.text]
 		result.duration_ms = Time.get_ticks_msec() - start_time
 		step_completed.emit(step, result)
@@ -108,13 +114,13 @@ func _execute_step(step: GherkinAST.Step) -> TestResult.StepResult:
 
 	# Check for execution errors
 	if exec_result is Dictionary and exec_result.get("error", false):
-		result.status = TestResult.Status.FAILED
+		result.status = TestResultScript.Status.FAILED
 		result.error_message = exec_result.get("message", "Step execution failed")
 	elif _context.has_failures():
-		result.status = TestResult.Status.FAILED
+		result.status = TestResultScript.Status.FAILED
 		result.error_message = _context.get_last_error()
 	else:
-		result.status = TestResult.Status.PASSED
+		result.status = TestResultScript.Status.PASSED
 
 	result.duration_ms = Time.get_ticks_msec() - start_time
 	step_completed.emit(step, result)
@@ -131,12 +137,12 @@ func _resolve_keyword(keyword: String) -> String:
 
 
 ## Mark remaining steps as skipped.
-func _skip_remaining_steps(steps: Array, result: TestResult.ScenarioResult) -> void:
-	for step: GherkinAST.Step in steps:
-		var step_result := TestResult.StepResult.new()
+func _skip_remaining_steps(steps: Array, result: TestResultScript.ScenarioResult) -> void:
+	for step: GherkinASTScript.Step in steps:
+		var step_result := TestResultScript.StepResult.new()
 		step_result.step_text = step.text
 		step_result.keyword = step.keyword
 		step_result.line = step.location.line if step.location else 0
-		step_result.status = TestResult.Status.SKIPPED
+		step_result.status = TestResultScript.Status.SKIPPED
 		step_result.error_message = "Skipped due to previous failure"
 		result.step_results.append(step_result)

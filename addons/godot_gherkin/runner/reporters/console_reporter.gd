@@ -1,6 +1,10 @@
-class_name ConsoleReporter
 extends RefCounted
 ## Human-readable console output reporter.
+##
+## Self-reference for headless mode compatibility
+const ConsoleReporterScript = preload("res://addons/godot_gherkin/runner/reporters/console_reporter.gd")
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
 ##
 ## Displays test results with optional ANSI colors for terminal output.
 
@@ -34,25 +38,25 @@ func report_start(feature_count: int) -> void:
 
 
 ## Report feature start.
-func report_feature_start(feature: GherkinAST.Feature) -> void:
+func report_feature_start(feature: GherkinASTScript.Feature) -> void:
 	_print("%s %s" % [_colorize("Feature:", BOLD), feature.name])
 
 
 ## Report feature completion.
-func report_feature_complete(result: TestResult.FeatureResult) -> void:
+func report_feature_complete(result: TestResultScript.FeatureResult) -> void:
 	if not verbose:
 		return
 	_print("")  # Extra line after feature
 
 
 ## Report scenario start.
-func report_scenario_start(scenario: GherkinAST.Scenario) -> void:
+func report_scenario_start(scenario: GherkinASTScript.Scenario) -> void:
 	if verbose:
 		_print("  %s %s" % [_colorize("Scenario:", BOLD), scenario.name])
 
 
 ## Report scenario completion.
-func report_scenario_complete(result: TestResult.ScenarioResult) -> void:
+func report_scenario_complete(result: TestResultScript.ScenarioResult) -> void:
 	if verbose:
 		# Print step details
 		for step in result.step_results:
@@ -73,12 +77,12 @@ func report_scenario_complete(result: TestResult.ScenarioResult) -> void:
 			)
 		)
 
-		if result.error_message and result.status == TestResult.Status.FAILED:
+		if result.error_message and result.status == TestResultScript.Status.FAILED:
 			_print("    %s" % _colorize(result.error_message, RED))
 
 
 ## Report full suite results.
-func report_results(result: TestResult.SuiteResult) -> void:
+func report_results(result: TestResultScript.SuiteResult) -> void:
 	_print("")
 
 	# Summary line
@@ -124,30 +128,30 @@ func report_results(result: TestResult.SuiteResult) -> void:
 
 
 ## Get the status symbol.
-func _get_status_symbol(status: TestResult.Status) -> String:
+func _get_status_symbol(status: TestResultScript.Status) -> String:
 	match status:
-		TestResult.Status.PASSED:
+		TestResultScript.Status.PASSED:
 			return PASS_SYMBOL
-		TestResult.Status.FAILED:
+		TestResultScript.Status.FAILED:
 			return FAIL_SYMBOL
-		TestResult.Status.SKIPPED:
+		TestResultScript.Status.SKIPPED:
 			return SKIP_SYMBOL
-		TestResult.Status.PENDING, TestResult.Status.UNDEFINED:
+		TestResultScript.Status.PENDING, TestResultScript.Status.UNDEFINED:
 			return PENDING_SYMBOL
 		_:
 			return "?"
 
 
 ## Get the color for a status.
-func _get_status_color(status: TestResult.Status) -> String:
+func _get_status_color(status: TestResultScript.Status) -> String:
 	match status:
-		TestResult.Status.PASSED:
+		TestResultScript.Status.PASSED:
 			return GREEN
-		TestResult.Status.FAILED:
+		TestResultScript.Status.FAILED:
 			return RED
-		TestResult.Status.SKIPPED:
+		TestResultScript.Status.SKIPPED:
 			return YELLOW
-		TestResult.Status.PENDING, TestResult.Status.UNDEFINED:
+		TestResultScript.Status.PENDING, TestResultScript.Status.UNDEFINED:
 			return YELLOW
 		_:
 			return RESET

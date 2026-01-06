@@ -1,6 +1,8 @@
-class_name TestResult
 extends RefCounted
 ## Result data structures for test execution.
+##
+## Self-reference for headless mode compatibility
+const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
 ##
 ## Provides structured results for steps, scenarios, features, and test suites.
 

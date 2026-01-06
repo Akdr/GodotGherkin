@@ -1,6 +1,8 @@
-class_name FileScanner
 extends RefCounted
 ## Discovers .feature files and step definition files in the project.
+##
+## Self-reference for headless mode compatibility
+const FileScannerScript = preload("res://addons/godot_gherkin/util/file_scanner.gd")
 
 
 ## Find all .feature files in the given directory (recursively).

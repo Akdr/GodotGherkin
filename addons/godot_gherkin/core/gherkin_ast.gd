@@ -1,6 +1,8 @@
-class_name GherkinAST
 extends RefCounted
 ## Abstract Syntax Tree node definitions for Gherkin feature files.
+##
+## Self-reference for headless mode compatibility
+const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
 ##
 ## This file defines all the AST node types used to represent parsed Gherkin
 ## feature files. All classes extend RefCounted for memory management.

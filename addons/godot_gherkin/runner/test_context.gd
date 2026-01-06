@@ -1,6 +1,8 @@
-class_name TestContext
 extends RefCounted
 ## Shared state and assertions for step execution.
+##
+## Self-reference for headless mode compatibility
+const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
 ##
 ## Each scenario gets a fresh TestContext that persists across steps
 ## within that scenario. Provides state storage and assertion helpers.
