@@ -1,0 +1,115 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run Gherkin Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        godot-version: ['4.3-stable']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ matrix.godot-version }}
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify Godot installation
+        run: godot --version
+
+      - name: Import project
+        run: |
+          godot --headless --import
+        timeout-minutes: 2
+
+      - name: Run tests
+        id: tests
+        run: |
+          godot --headless --script tests/run_tests.gd -- --format json --output test-results.json
+        timeout-minutes: 5
+        continue-on-error: true
+
+      - name: Display test results
+        if: always()
+        run: |
+          if [ -f test-results.json ]; then
+            echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat test-results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+            # Parse and display summary
+            SUCCESS=$(cat test-results.json | jq -r '.success')
+            TOTAL=$(cat test-results.json | jq -r '.summary.total_scenarios')
+            PASSED=$(cat test-results.json | jq -r '.summary.passed')
+            FAILED=$(cat test-results.json | jq -r '.summary.failed')
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Total Scenarios | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+            echo "| Success | $SUCCESS |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No test results file found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.godot-version }}
+          path: test-results.json
+          if-no-files-found: warn
+
+      - name: Check test status
+        run: |
+          if [ -f test-results.json ]; then
+            SUCCESS=$(cat test-results.json | jq -r '.success')
+            if [ "$SUCCESS" = "true" ]; then
+              echo "All tests passed!"
+              exit 0
+            else
+              echo "Tests failed!"
+              cat test-results.json | jq '.features[].scenarios[] | select(.status != "passed") | {name: .name, status: .status, error: .error}'
+              exit 1
+            fi
+          else
+            echo "Test results not found, checking exit code from test run"
+            exit 1
+          fi
+
+  lint:
+    name: GDScript Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install gdtoolkit
+        run: pip install gdtoolkit
+
+      - name: Run gdlint
+        run: gdlint addons/ tests/
+
+      - name: Check formatting with gdformat
+        run: gdformat --check addons/ tests/
