@@ -12,8 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
-        godot-version: ['4.3-stable']
+        godot-version: ['4.3-stable', '4.4-stable', '4.5-stable', '4.6-stable']
 
     steps:
       - name: Checkout repository
