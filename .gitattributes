@@ -1,0 +1,23 @@
+# Exclude development files when used as a submodule
+# These are ignored by git archive and sparse checkout
+
+# Development/CI files
+.claude/ export-ignore
+.github/ export-ignore
+.godot/ export-ignore
+.gdlintrc export-ignore
+.gitattributes export-ignore
+
+# Documentation (consumers can reference GitHub)
+docs/ export-ignore
+LLM-README.md export-ignore
+
+# Test suite (for addon development only)
+tests/ export-ignore
+
+# Godot project files (for addon development only)
+project.godot export-ignore
+Godot.app/ export-ignore
+
+# Symlink for development (not needed in production)
+addons/ export-ignore

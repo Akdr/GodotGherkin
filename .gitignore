@@ -20,3 +20,6 @@ mono_crash.*.json
 
 # Test output
 test-results.json
+
+# Development symlink (points to repo root for testing)
+addons/
