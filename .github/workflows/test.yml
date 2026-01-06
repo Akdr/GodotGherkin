@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        godot-version: ['4.3', '4.4', '4.5', '4.6']
+        godot-version: ['4.3.0', '4.4.0', '4.5.0']
 
     steps:
       - name: Checkout repository
