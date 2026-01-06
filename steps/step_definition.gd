@@ -23,6 +23,9 @@ var step_type: String = ""
 ## Source location for debugging (optional).
 var source_location: String = ""
 
+## Tags this step is scoped to (empty means matches all scenarios).
+var scoped_tags: Array[String] = []
+
 
 func _init(
 	p_pattern: String, p_callback: Callable, p_step_type: String = "", p_source: String = ""
@@ -47,6 +50,24 @@ func matches(step_text: String) -> bool:
 		return false
 	var match_result := StepMatcherScript.match_step(step_text, _compiled)
 	return match_result.matched
+
+
+## Check if this step matches the given scenario tags.
+## Returns true if no scoped_tags are set, or if any scoped tag matches.
+func matches_tags(scenario_tags: Array[String]) -> bool:
+	if scoped_tags.is_empty():
+		return true
+	for tag in scoped_tags:
+		if tag in scenario_tags:
+			return true
+	return false
+
+
+## Scope this step to specific tags (fluent API).
+## When scoped, this step will only match scenarios with at least one of these tags.
+func for_tags(tags: Array[String]) -> StepDefinitionScript:
+	scoped_tags = tags
+	return self
 
 
 ## Get match result with extracted arguments.

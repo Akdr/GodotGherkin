@@ -64,8 +64,11 @@ func step(pattern: String, callback: Callable) -> StepDefinitionScript:
 
 
 ## Find a matching step definition for the given keyword and text.
+## Optionally filter by scenario tags to support scoped steps.
 ## Returns null if no match is found.
-func find_step(keyword: String, text: String) -> StepDefinitionScript:
+func find_step(
+	keyword: String, text: String, scenario_tags: Array[String] = []
+) -> StepDefinitionScript:
 	var steps_to_search: Array[StepDefinitionScript] = []
 
 	# Determine which step lists to search based on keyword
@@ -85,12 +88,20 @@ func find_step(keyword: String, text: String) -> StepDefinitionScript:
 			steps_to_search.append_array(_then_steps)
 			steps_to_search.append_array(_any_steps)
 
-	# Find first matching step
+	# Find first matching step (prioritize scoped steps over unscoped)
+	var unscoped_match: StepDefinitionScript = null
+
 	for step_def in steps_to_search:
 		if step_def.matches(text):
-			return step_def
+			if step_def.matches_tags(scenario_tags):
+				# Scoped steps take priority - return immediately if tags match
+				if not step_def.scoped_tags.is_empty():
+					return step_def
+				# Save unscoped match as fallback
+				if unscoped_match == null:
+					unscoped_match = step_def
 
-	return null
+	return unscoped_match
 
 
 ## Find all matching step definitions (useful for detecting ambiguous steps).

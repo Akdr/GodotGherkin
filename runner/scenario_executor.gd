@@ -17,6 +17,7 @@ signal step_completed(step: GherkinASTScript.Step, result: TestResultScript.Step
 var _registry: StepRegistryScript
 var _context: TestContextScript
 var _previous_keyword: String = "Given"
+var _current_scenario_tags: Array[String] = []
 
 
 func _init(registry: StepRegistryScript, context: TestContextScript = null) -> void:
@@ -49,6 +50,7 @@ func execute_scenario(
 	# Reset context for new scenario
 	_context.reset()
 	_previous_keyword = "Given"
+	_current_scenario_tags = scenario.get_tag_names()
 
 	# Execute background steps first
 	if background:
@@ -94,8 +96,8 @@ func _execute_step(step: GherkinASTScript.Step) -> TestResultScript.StepResult:
 	# Resolve And/But to actual keyword for step lookup
 	var effective_keyword := _resolve_keyword(step.keyword)
 
-	# Find matching step definition
-	var step_def := _registry.find_step(effective_keyword, step.text)
+	# Find matching step definition (pass scenario tags for scoped step matching)
+	var step_def := _registry.find_step(effective_keyword, step.text, _current_scenario_tags)
 
 	if not step_def:
 		result.status = TestResultScript.Status.UNDEFINED
