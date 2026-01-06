@@ -14,27 +14,33 @@ A Behavior-Driven Development (BDD) testing framework for Godot 4.3+ that enable
 
 ## Installation
 
-### Option 1: Git Submodule (Recommended)
+### Option 1: Godot Asset Library (Recommended)
+
+1. Open Godot and go to **AssetLib** tab
+2. Search for "GodotGherkin"
+3. Click **Download** and **Install**
+4. Enable the plugin in **Project > Project Settings > Plugins** (optional)
+
+### Option 2: Git Submodule
 
 ```bash
-# Add as submodule
-git submodule add https://github.com/Akdr/GodotGherkin.git addons/godot_gherkin
+# Add as submodule (clones the whole repo, addon is in addons/godot_gherkin/)
+git submodule add https://github.com/Akdr/GodotGherkin.git GodotGherkin
+ln -s GodotGherkin/addons/godot_gherkin addons/godot_gherkin
 
-# For existing clones with submodules
-git submodule update --init --recursive
-
-# Update to latest version
-git submodule update --remote addons/godot_gherkin
+# Or use sparse checkout to get just the addon folder
+git submodule add --depth 1 https://github.com/Akdr/GodotGherkin.git addons/godot_gherkin
+cd addons/godot_gherkin && git sparse-checkout set addons/godot_gherkin
 ```
 
-### Option 2: Manual Copy
+### Option 3: Manual Download
 
-1. Download or clone this repository
-2. Copy the `addons/godot_gherkin` folder to your project's `addons/` directory
+1. Download the [latest release](https://github.com/Akdr/GodotGherkin/releases)
+2. Extract and copy the `addons/godot_gherkin` folder to your project's `addons/` directory
 
 ### Enable Plugin (Optional)
 
-Enable the plugin in Project Settings > Plugins for editor integration.
+Enable the plugin in **Project > Project Settings > Plugins** for editor integration.
 
 ## Quick Start
 

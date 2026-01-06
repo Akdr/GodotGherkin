@@ -19,5 +19,6 @@ tests/ export-ignore
 project.godot export-ignore
 Godot.app/ export-ignore
 
-# Symlink for development (not needed in production)
-addons/ export-ignore
+# Screenshots (for Asset Library only, not needed in download)
+screenshots/ export-ignore
+

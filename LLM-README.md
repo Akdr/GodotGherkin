@@ -10,6 +10,8 @@ GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` fil
 
 **Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
+**Version**: 0.3.0 - Now compatible with Godot Asset Library.
+
 ## File Structure
 
 ```
