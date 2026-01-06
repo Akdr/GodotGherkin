@@ -2,7 +2,9 @@ extends RefCounted
 ## Human-readable console output reporter.
 ##
 ## Self-reference for headless mode compatibility
-const ConsoleReporterScript = preload("res://addons/godot_gherkin/runner/reporters/console_reporter.gd")
+const ConsoleReporterScript = preload(
+	"res://addons/godot_gherkin/runner/reporters/console_reporter.gd"
+)
 const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
 const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
 ##

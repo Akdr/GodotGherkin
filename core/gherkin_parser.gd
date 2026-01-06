@@ -26,7 +26,9 @@ func parse(source: String, file_path: String = "") -> GherkinASTScript.Feature:
 
 
 ## Parse from pre-tokenized tokens.
-func parse_tokens(tokens: Array[GherkinLexerScript.Token], file_path: String = "") -> GherkinASTScript.Feature:
+func parse_tokens(
+	tokens: Array[GherkinLexerScript.Token], file_path: String = ""
+) -> GherkinASTScript.Feature:
 	_tokens = tokens
 	_current = 0
 	_errors = []
@@ -429,7 +431,10 @@ func _skip_empty_lines() -> void:
 
 ## Skip empty lines and comments.
 func _skip_empty_and_comments() -> void:
-	while _check(GherkinLexerScript.TokenType.EMPTY_LINE) or _check(GherkinLexerScript.TokenType.COMMENT):
+	while (
+		_check(GherkinLexerScript.TokenType.EMPTY_LINE)
+		or _check(GherkinLexerScript.TokenType.COMMENT)
+	):
 		_advance()
 
 

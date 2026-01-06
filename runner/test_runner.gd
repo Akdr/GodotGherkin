@@ -188,7 +188,9 @@ func run_feature(feature: GherkinASTScript.Feature) -> TestResultScript.FeatureR
 
 
 ## Expand a scenario outline into concrete scenarios.
-func _expand_scenario_outline(outline: GherkinASTScript.ScenarioOutline) -> Array[GherkinASTScript.Scenario]:
+func _expand_scenario_outline(
+	outline: GherkinASTScript.ScenarioOutline
+) -> Array[GherkinASTScript.Scenario]:
 	var scenarios: Array[GherkinASTScript.Scenario] = []
 
 	for examples in outline.examples:

@@ -19,7 +19,9 @@ class CompileResult:
 	var error: String = ""
 	var success: bool = false
 
-	static func ok(p_regex: RegEx, p_types: Array[ParameterTypesScript.ParameterType]) -> CompileResult:
+	static func ok(
+		p_regex: RegEx, p_types: Array[ParameterTypesScript.ParameterType]
+	) -> CompileResult:
 		var result := CompileResult.new()
 		result.regex = p_regex
 		result.param_types = p_types

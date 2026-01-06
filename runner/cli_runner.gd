@@ -7,7 +7,9 @@ const GherkinTestRunnerScript = preload("res://addons/godot_gherkin/runner/test_
 const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
 const GherkinParserScript = preload("res://addons/godot_gherkin/core/gherkin_parser.gd")
 const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
-const ConsoleReporterScript = preload("res://addons/godot_gherkin/runner/reporters/console_reporter.gd")
+const ConsoleReporterScript = preload(
+	"res://addons/godot_gherkin/runner/reporters/console_reporter.gd"
+)
 const JsonReporterScript = preload("res://addons/godot_gherkin/runner/reporters/json_reporter.gd")
 const FileScannerScript = preload("res://addons/godot_gherkin/util/file_scanner.gd")
 ##
