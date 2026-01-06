@@ -104,8 +104,8 @@ func _execute_step(step: GherkinASTScript.Step) -> TestResultScript.StepResult:
 		step_completed.emit(step, result)
 		return result
 
-	# Execute the step
-	var exec_result = step_def.execute(step.text, _context)
+	# Execute the step (pass DataTable/DocString argument if present)
+	var exec_result = step_def.execute(step.text, _context, step.argument)
 
 	# Handle async execution (if result is a coroutine)
 	if exec_result is Object and exec_result.has_method("is_valid"):

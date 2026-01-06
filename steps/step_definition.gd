@@ -58,7 +58,8 @@ func get_match(step_text: String) -> StepMatcherScript.MatchResult:
 
 ## Execute the step with the given context and step text.
 ## Returns the result of the callback, or an error if execution fails.
-func execute(step_text: String, context: Variant) -> Variant:
+## step_argument can be a DataTable or DocString from the step.
+func execute(step_text: String, context: Variant, step_argument: Variant = null) -> Variant:
 	var match_result := get_match(step_text)
 	if not match_result.matched:
 		return _create_error("Step does not match pattern: %s" % pattern)
@@ -66,6 +67,10 @@ func execute(step_text: String, context: Variant) -> Variant:
 	# Build arguments: context first, then extracted parameters
 	var args: Array = [context]
 	args.append_array(match_result.arguments)
+
+	# Append step argument (DataTable or DocString) if present
+	if step_argument != null:
+		args.append(_convert_step_argument(step_argument))
 
 	# Execute callback
 	if not callback.is_valid():
@@ -75,8 +80,26 @@ func execute(step_text: String, context: Variant) -> Variant:
 
 
 ## Execute the step asynchronously (returns result that may be a coroutine).
-func execute_async(step_text: String, context: Variant) -> Variant:
-	return execute(step_text, context)
+func execute_async(step_text: String, context: Variant, step_argument: Variant = null) -> Variant:
+	return execute(step_text, context, step_argument)
+
+
+## Convert a step argument (DataTable/DocString) to a user-friendly format.
+func _convert_step_argument(arg: Variant) -> Variant:
+	const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
+
+	if arg is GherkinASTScript.DataTable:
+		# Convert DataTable to Array of Arrays for easy iteration
+		var result: Array = []
+		for row in arg.rows:
+			result.append(row.get_values())
+		return result
+
+	if arg is GherkinASTScript.DocString:
+		# Return the content string directly
+		return arg.content
+
+	return arg
 
 
 ## Get the compiled regex pattern (for debugging).
