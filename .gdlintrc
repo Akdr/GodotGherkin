@@ -1,0 +1,31 @@
+# GDLint configuration for GodotGherkin
+# See: https://github.com/Scony/godot-gdscript-toolkit
+
+# Disabled rules - use the 'disable' list
+disable:
+  - class-definitions-order  # Too many existing violations to fix at once
+  - unused-argument          # Many callbacks require unused args (signal handlers)
+
+# Relax max-public-methods - game objects naturally have many methods
+# main_menu.gd (86), settings_manager.gd (70) are API-heavy singletons
+max-public-methods: 90
+
+# Relax max-file-lines - some files like main_game.gd, main_system_handlers.gd and lobby.gd
+# are intentionally large due to complex UI and state management. These handle Steam
+# integration, character selection, network states, and game loop coordination.
+max-file-lines: 1600
+
+# Relax max-returns - state machines and decision functions need multiple returns
+max-returns: 12
+
+# Relax max-line-length to 160 (more practical for game code)
+max-line-length: 160
+
+# Allow _HELP_ prefixed constants for PankuConsole autocomplete documentation
+# Pattern: standard SCREAMING_SNAKE_CASE or _HELP_xxx constants
+constant-name: "(_HELP_[a-z_]+|[A-Z][A-Z0-9_]*)"
+
+# Keep these enabled - they catch real issues:
+# - no-else-return: Improves readability
+# - mixed-tabs-and-spaces: Prevents formatting issues
+# - duplicated-load: Catches actual bugs
