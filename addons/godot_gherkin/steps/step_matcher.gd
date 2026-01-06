@@ -9,15 +9,14 @@ extends RefCounted
 
 
 ## Result of pattern compilation.
-class CompileResult extends RefCounted:
+class CompileResult:
+	extends RefCounted
 	var regex: RegEx = null
 	var param_types: Array[ParameterTypes.ParameterType] = []
 	var error: String = ""
 	var success: bool = false
 
-	static func ok(
-		p_regex: RegEx, p_types: Array[ParameterTypes.ParameterType]
-	) -> CompileResult:
+	static func ok(p_regex: RegEx, p_types: Array[ParameterTypes.ParameterType]) -> CompileResult:
 		var result := CompileResult.new()
 		result.regex = p_regex
 		result.param_types = p_types
@@ -32,7 +31,8 @@ class CompileResult extends RefCounted:
 
 
 ## Result of a step match attempt.
-class MatchResult extends RefCounted:
+class MatchResult:
+	extends RefCounted
 	var matched: bool = false
 	var arguments: Array = []
 	var regex_match: RegExMatch = null
@@ -135,10 +135,7 @@ static func compile_pattern(
 
 
 ## Match step text against a compiled pattern.
-static func match_step(
-	step_text: String,
-	compiled: CompileResult
-) -> MatchResult:
+static func match_step(step_text: String, compiled: CompileResult) -> MatchResult:
 	if not compiled.success or not compiled.regex:
 		return MatchResult.failure()
 
@@ -177,5 +174,5 @@ static func _is_word_char(c: String) -> bool:
 		(code >= 65 and code <= 90)
 		or (code >= 97 and code <= 122)  # A-Z  # a-z
 		or (code >= 48 and code <= 57)  # 0-9
-		or code == 95  # _
-	)
+		or code == 95
+	)  # _

@@ -7,7 +7,8 @@ extends RefCounted
 
 
 ## Represents a source location (line and column) in a feature file.
-class Location extends RefCounted:
+class Location:
+	extends RefCounted
 	var line: int = 0
 	var column: int = 0
 
@@ -20,7 +21,8 @@ class Location extends RefCounted:
 
 
 ## Represents a tag (e.g., @smoke, @slow).
-class Tag extends RefCounted:
+class Tag:
+	extends RefCounted
 	var name: String = ""
 	var location: Location = null
 
@@ -30,7 +32,8 @@ class Tag extends RefCounted:
 
 
 ## Represents a comment line.
-class Comment extends RefCounted:
+class Comment:
+	extends RefCounted
 	var text: String = ""
 	var location: Location = null
 
@@ -40,7 +43,8 @@ class Comment extends RefCounted:
 
 
 ## Represents a single cell in a data table row.
-class TableCell extends RefCounted:
+class TableCell:
+	extends RefCounted
 	var value: String = ""
 	var location: Location = null
 
@@ -50,7 +54,8 @@ class TableCell extends RefCounted:
 
 
 ## Represents a row in a data table.
-class TableRow extends RefCounted:
+class TableRow:
+	extends RefCounted
 	var cells: Array[TableCell] = []
 	var location: Location = null
 
@@ -65,7 +70,8 @@ class TableRow extends RefCounted:
 
 
 ## Represents a data table (used as step argument).
-class DataTable extends RefCounted:
+class DataTable:
+	extends RefCounted
 	var rows: Array[TableRow] = []
 	var location: Location = null
 
@@ -90,7 +96,8 @@ class DataTable extends RefCounted:
 
 
 ## Represents a doc string (multi-line string argument).
-class DocString extends RefCounted:
+class DocString:
+	extends RefCounted
 	var content: String = ""
 	var media_type: String = ""  # Optional content type (e.g., "json", "xml")
 	var delimiter: String = '"""'  # """ or ```
@@ -102,7 +109,8 @@ class DocString extends RefCounted:
 
 
 ## Represents a step (Given/When/Then/And/But/*).
-class Step extends RefCounted:
+class Step:
+	extends RefCounted
 	var keyword: String = ""  # "Given", "When", "Then", "And", "But", "*"
 	var text: String = ""
 	var argument: Variant = null  # DataTable, DocString, or null
@@ -127,7 +135,8 @@ class Step extends RefCounted:
 
 
 ## Represents a Background section.
-class Background extends RefCounted:
+class Background:
+	extends RefCounted
 	var keyword: String = "Background"
 	var name: String = ""
 	var description: String = ""
@@ -139,7 +148,8 @@ class Background extends RefCounted:
 
 
 ## Represents an Examples section in a Scenario Outline.
-class Examples extends RefCounted:
+class Examples:
+	extends RefCounted
 	var keyword: String = "Examples"
 	var name: String = ""
 	var description: String = ""
@@ -162,7 +172,8 @@ class Examples extends RefCounted:
 
 
 ## Represents a Scenario.
-class Scenario extends RefCounted:
+class Scenario:
+	extends RefCounted
 	var keyword: String = "Scenario"
 	var name: String = ""
 	var description: String = ""
@@ -187,7 +198,8 @@ class Scenario extends RefCounted:
 
 
 ## Represents a Scenario Outline (parameterized scenario).
-class ScenarioOutline extends RefCounted:
+class ScenarioOutline:
+	extends RefCounted
 	var keyword: String = "Scenario Outline"
 	var name: String = ""
 	var description: String = ""
@@ -220,7 +232,8 @@ class ScenarioOutline extends RefCounted:
 
 
 ## Represents a Rule section (Gherkin 6+).
-class Rule extends RefCounted:
+class Rule:
+	extends RefCounted
 	var keyword: String = "Rule"
 	var name: String = ""
 	var description: String = ""
@@ -234,7 +247,8 @@ class Rule extends RefCounted:
 
 
 ## Represents a Feature (top-level Gherkin construct).
-class Feature extends RefCounted:
+class Feature:
+	extends RefCounted
 	var keyword: String = "Feature"
 	var name: String = ""
 	var description: String = ""

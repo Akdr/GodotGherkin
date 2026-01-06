@@ -15,7 +15,8 @@ enum Status {
 
 
 ## Result of a single step execution.
-class StepResult extends RefCounted:
+class StepResult:
+	extends RefCounted
 	var step_text: String = ""
 	var keyword: String = ""
 	var status: Status = Status.PASSED
@@ -38,7 +39,8 @@ class StepResult extends RefCounted:
 
 
 ## Result of a scenario execution.
-class ScenarioResult extends RefCounted:
+class ScenarioResult:
+	extends RefCounted
 	var scenario_name: String = ""
 	var feature_name: String = ""
 	var tags: Array[String] = []
@@ -88,7 +90,8 @@ class ScenarioResult extends RefCounted:
 
 
 ## Result of a feature execution.
-class FeatureResult extends RefCounted:
+class FeatureResult:
+	extends RefCounted
 	var feature_name: String = ""
 	var file_path: String = ""
 	var tags: Array[String] = []
@@ -161,7 +164,8 @@ class FeatureResult extends RefCounted:
 
 
 ## Result of an entire test suite execution.
-class SuiteResult extends RefCounted:
+class SuiteResult:
+	extends RefCounted
 	var feature_results: Array[FeatureResult] = []
 	var total_duration_ms: float = 0.0
 	var start_time: int = 0
@@ -218,12 +222,15 @@ class SuiteResult extends RefCounted:
 		return count
 
 	func summary() -> String:
-		return "%d scenarios (%d passed, %d failed) in %.2fs" % [
-			total_scenarios(),
-			passed_scenarios(),
-			failed_scenarios(),
-			total_duration_ms / 1000.0
-		]
+		return (
+			"%d scenarios (%d passed, %d failed) in %.2fs"
+			% [
+				total_scenarios(),
+				passed_scenarios(),
+				failed_scenarios(),
+				total_duration_ms / 1000.0
+			]
+		)
 
 	func to_dict() -> Dictionary:
 		var features_array: Array = []

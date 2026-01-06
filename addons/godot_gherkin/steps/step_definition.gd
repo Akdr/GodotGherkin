@@ -21,10 +21,7 @@ var source_location: String = ""
 
 
 func _init(
-	p_pattern: String,
-	p_callback: Callable,
-	p_step_type: String = "",
-	p_source: String = ""
+	p_pattern: String, p_callback: Callable, p_step_type: String = "", p_source: String = ""
 ) -> void:
 	pattern = p_pattern
 	callback = p_callback

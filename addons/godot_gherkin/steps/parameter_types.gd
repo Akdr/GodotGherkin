@@ -6,7 +6,8 @@ extends RefCounted
 
 
 ## Represents a parameter type with regex pattern and transformer function.
-class ParameterType extends RefCounted:
+class ParameterType:
+	extends RefCounted
 	var name: String = ""
 	var regex: String = ""
 	var transformer: Callable
@@ -25,49 +26,51 @@ class ParameterType extends RefCounted:
 ## Built-in parameter types as static constants.
 
 ## Integer: matches -?[0-9]+
-static var INT := ParameterType.new(
-	"int", "-?\\d+", func(s: String) -> int: return s.to_int()
-)
+static var int_type := ParameterType.new("int", "-?\\d+", func(s: String) -> int: return s.to_int())
 
 ## Float: matches -?[0-9]*\.?[0-9]+
-static var FLOAT := ParameterType.new(
+static var float_type := ParameterType.new(
 	"float", "-?\\d*\\.?\\d+", func(s: String) -> float: return s.to_float()
 )
 
 ## Word: matches a single non-whitespace word
-static var WORD := ParameterType.new("word", "\\S+", func(s: String) -> String: return s)
+static var word_type := ParameterType.new("word", "\\S+", func(s: String) -> String: return s)
 
 ## String: matches text in single or double quotes
-static var STRING := ParameterType.new(
+static var string_type := ParameterType.new(
 	"string",
-	'["\']([^"\']*)["\']',
+	"[\"']([^\"']*)[\"']",
 	func(s: String) -> String:
 		# Strip surrounding quotes
 		if s.length() >= 2:
-			if (s.begins_with('"') and s.ends_with('"')) or (s.begins_with("'") and s.ends_with("'")):
+			if (
+				(s.begins_with('"') and s.ends_with('"'))
+				or (s.begins_with("'") and s.ends_with("'"))
+			):
 				return s.substr(1, s.length() - 2)
 		return s
 )
 
 ## Any: matches any text (greedy)
-static var ANY := ParameterType.new("any", ".*", func(s: String) -> String: return s)
+static var any_type := ParameterType.new("any", ".*", func(s: String) -> String: return s)
 
 ## Anonymous: same as any, used for {}
-static var ANONYMOUS := ParameterType.new("", ".*", func(s: String) -> String: return s)
+static var anonymous_type := ParameterType.new("", ".*", func(s: String) -> String: return s)
 
 
 ## Registry for parameter types, including custom types.
-class ParameterTypeRegistry extends RefCounted:
+class ParameterTypeRegistry:
+	extends RefCounted
 	var _types: Dictionary = {}
 
 	func _init() -> void:
 		# Register built-in types
-		register(INT)
-		register(FLOAT)
-		register(WORD)
-		register(STRING)
-		register(ANY)
-		register(ANONYMOUS)
+		register(int_type)
+		register(float_type)
+		register(word_type)
+		register(string_type)
+		register(any_type)
+		register(anonymous_type)
 
 	## Register a parameter type.
 	func register(param_type: ParameterType) -> void:

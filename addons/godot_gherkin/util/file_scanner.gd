@@ -47,7 +47,7 @@ func _matches_pattern(file_name: String, pattern: String) -> bool:
 	if pattern.begins_with("*"):
 		var suffix := pattern.substr(1)
 		return file_name.ends_with(suffix)
-	elif pattern.ends_with("*"):
+	if pattern.ends_with("*"):
 		var prefix := pattern.substr(0, pattern.length() - 1)
 		return file_name.begins_with(prefix)
 	return file_name == pattern

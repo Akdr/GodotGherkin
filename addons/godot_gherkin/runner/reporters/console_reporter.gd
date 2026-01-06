@@ -67,8 +67,10 @@ func report_scenario_complete(result: TestResult.ScenarioResult) -> void:
 		var symbol := _get_status_symbol(result.status)
 		var color := _get_status_color(result.status)
 		_print(
-			"  %s %s %s"
-			% [_colorize(symbol, color), _colorize("Scenario:", DIM), result.scenario_name]
+			(
+				"  %s %s %s"
+				% [_colorize(symbol, color), _colorize("Scenario:", DIM), result.scenario_name]
+			)
 		)
 
 		if result.error_message and result.status == TestResult.Status.FAILED:
@@ -109,9 +111,7 @@ func report_results(result: TestResult.SuiteResult) -> void:
 	_print(", ".join(step_parts))
 
 	# Duration
-	_print(
-		_colorize("Finished in %.2fs" % (result.total_duration_ms / 1000.0), DIM)
-	)
+	_print(_colorize("Finished in %.2fs" % (result.total_duration_ms / 1000.0), DIM))
 
 	# Undefined steps
 	if result.undefined_steps.size() > 0:

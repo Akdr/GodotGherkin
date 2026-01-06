@@ -31,8 +31,10 @@ enum TokenType {
 	EOF,
 }
 
+
 ## Represents a single token from the lexer.
-class Token extends RefCounted:
+class Token:
+	extends RefCounted
 	var type: TokenType
 	var value: String
 	var line: int
@@ -78,7 +80,16 @@ const KEYWORDS := {
 const STEP_KEYWORDS := ["Given", "When", "Then", "And", "But", "*"]
 
 ## Structure keywords that define major sections.
-const STRUCTURE_KEYWORDS := ["Feature", "Rule", "Background", "Scenario", "Scenario Outline", "Scenario Template", "Examples", "Scenarios"]
+const STRUCTURE_KEYWORDS := [
+	"Feature",
+	"Rule",
+	"Background",
+	"Scenario",
+	"Scenario Outline",
+	"Scenario Template",
+	"Examples",
+	"Scenarios"
+]
 
 var _source: String = ""
 var _lines: PackedStringArray = []
@@ -118,7 +129,9 @@ func _scan_line() -> Token:
 
 	# Comment
 	if trimmed.begins_with("#"):
-		return Token.new(TokenType.COMMENT, trimmed.substr(1).strip_edges(), line_num, indent, indent)
+		return Token.new(
+			TokenType.COMMENT, trimmed.substr(1).strip_edges(), line_num, indent, indent
+		)
 
 	# Tag(s)
 	if trimmed.begins_with("@"):
@@ -152,10 +165,10 @@ func _try_scan_keyword(trimmed: String, line_num: int, indent: int) -> Token:
 		if trimmed.begins_with(keyword + ":"):
 			var value := trimmed.substr(keyword.length() + 1).strip_edges()
 			return Token.new(KEYWORDS[keyword], value, line_num, indent, indent)
-		elif trimmed.begins_with(keyword + " ") and keyword in STEP_KEYWORDS:
+		if trimmed.begins_with(keyword + " ") and keyword in STEP_KEYWORDS:
 			var value := trimmed.substr(keyword.length() + 1).strip_edges()
 			return Token.new(KEYWORDS[keyword], value, line_num, indent, indent)
-		elif trimmed == keyword and keyword in STEP_KEYWORDS:
+		if trimmed == keyword and keyword in STEP_KEYWORDS:
 			# Step keyword with no text (rare but valid)
 			return Token.new(KEYWORDS[keyword], "", line_num, indent, indent)
 
@@ -205,19 +218,32 @@ func _count_indent(line: String) -> int:
 
 ## Check if a token type is a step keyword.
 static func is_step_keyword(type: TokenType) -> bool:
-	return type in [TokenType.GIVEN, TokenType.WHEN, TokenType.THEN, TokenType.AND, TokenType.BUT, TokenType.ASTERISK]
+	return (
+		type
+		in [
+			TokenType.GIVEN,
+			TokenType.WHEN,
+			TokenType.THEN,
+			TokenType.AND,
+			TokenType.BUT,
+			TokenType.ASTERISK
+		]
+	)
 
 
 ## Check if a token type is a structure keyword.
 static func is_structure_keyword(type: TokenType) -> bool:
-	return type in [
-		TokenType.FEATURE,
-		TokenType.RULE,
-		TokenType.BACKGROUND,
-		TokenType.SCENARIO,
-		TokenType.SCENARIO_OUTLINE,
-		TokenType.EXAMPLES
-	]
+	return (
+		type
+		in [
+			TokenType.FEATURE,
+			TokenType.RULE,
+			TokenType.BACKGROUND,
+			TokenType.SCENARIO,
+			TokenType.SCENARIO_OUTLINE,
+			TokenType.EXAMPLES
+		]
+	)
 
 
 ## Convert token type to Gherkin keyword string.
