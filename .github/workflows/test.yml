@@ -30,6 +30,11 @@ jobs:
       - name: Verify Godot installation
         run: godot --version
 
+      - name: Create addon symlink
+        run: |
+          mkdir -p addons
+          ln -s .. addons/godot_gherkin
+
       - name: Import project
         run: |
           godot --headless --import
@@ -110,7 +115,7 @@ jobs:
         run: pip install gdtoolkit
 
       - name: Run gdlint
-        run: gdlint addons/ tests/
+        run: gdlint core/ runner/ steps/ util/ plugin.gd tests/
 
       - name: Check formatting with gdformat
-        run: gdformat --check addons/ tests/
+        run: gdformat --check core/ runner/ steps/ util/ plugin.gd tests/
