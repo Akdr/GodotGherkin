@@ -39,9 +39,11 @@ static var float_type := ParameterType.new(
 static var word_type := ParameterType.new("word", "\\S+", func(s: String) -> String: return s)
 
 ## String: matches text in single or double quotes
+## Uses non-capturing group (?:...) to avoid nested capture group issues
+## when multiple {string} parameters appear in a single step pattern.
 static var string_type := ParameterType.new(
 	"string",
-	"[\"']([^\"']*)[\"']",
+	"[\"'](?:[^\"']*)[\"']",
 	func(s: String) -> String:
 		# Strip surrounding quotes
 		if s.length() >= 2:
