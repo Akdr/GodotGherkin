@@ -36,6 +36,7 @@ var verbose: bool = false
 var dry_run: bool = false
 var fail_fast: bool = false
 var no_color: bool = false
+var list_steps: bool = false
 
 
 func _init(scene_tree: SceneTree = null) -> void:
@@ -71,6 +72,10 @@ func run(args: PackedStringArray) -> int:
 	# Handle dry run
 	if dry_run:
 		return _do_dry_run()
+
+	# Handle list steps
+	if list_steps:
+		return _do_list_steps()
 
 	# Run tests
 	var result: TestResultScript.SuiteResult
@@ -152,6 +157,9 @@ func _parse_args(args: PackedStringArray) -> int:
 			"--dry-run":
 				dry_run = true
 
+			"--list-steps":
+				list_steps = true
+
 			"--fail-fast":
 				fail_fast = true
 
@@ -208,6 +216,50 @@ func _do_dry_run() -> int:
 	return EXIT_SUCCESS
 
 
+## List all registered step definitions.
+func _do_list_steps() -> int:
+	_runner.load_steps()
+
+	var registry := _runner.get_registry()
+	var given_steps := registry.get_given_steps()
+	var when_steps := registry.get_when_steps()
+	var then_steps := registry.get_then_steps()
+	var any_steps := registry.get_any_steps()
+
+	var total := registry.count()
+	print("\nRegistered Steps (%d total):\n" % total)
+
+	if given_steps.size() > 0:
+		print("Given steps:")
+		for step in given_steps:
+			var source := step.source_location if step.source_location else "unknown"
+			print('  - "%s" (%s)' % [step.pattern, source])
+		print("")
+
+	if when_steps.size() > 0:
+		print("When steps:")
+		for step in when_steps:
+			var source := step.source_location if step.source_location else "unknown"
+			print('  - "%s" (%s)' % [step.pattern, source])
+		print("")
+
+	if then_steps.size() > 0:
+		print("Then steps:")
+		for step in then_steps:
+			var source := step.source_location if step.source_location else "unknown"
+			print('  - "%s" (%s)' % [step.pattern, source])
+		print("")
+
+	if any_steps.size() > 0:
+		print("Universal steps (any keyword):")
+		for step in any_steps:
+			var source := step.source_location if step.source_location else "unknown"
+			print('  - "%s" (%s)' % [step.pattern, source])
+		print("")
+
+	return EXIT_SUCCESS
+
+
 ## Signal handlers
 func _on_run_started(feature_count: int) -> void:
 	_reporter.report_start(feature_count)
@@ -258,6 +310,7 @@ Options:
   --output, -o <path>    Write output to file
   --verbose, -v          Show step details
   --dry-run              List scenarios without executing
+  --list-steps           List all registered step definitions
   --fail-fast            Stop on first failure
   --no-color             Disable colored output
   --help, -h             Show this help message

@@ -25,12 +25,14 @@ class StepResult:
 	var error_message: String = ""
 	var duration_ms: float = 0.0
 	var line: int = 0
+	var step_source: String = ""  # Source file of the step definition
+	var is_background: bool = false  # Whether this step is from Background
 
 	func is_passed() -> bool:
 		return status == Status.PASSED
 
 	func to_dict() -> Dictionary:
-		return {
+		var result := {
 			"keyword": keyword,
 			"text": step_text,
 			"status": Status.keys()[status].to_lower(),
@@ -38,6 +40,9 @@ class StepResult:
 			"error": error_message if error_message else null,
 			"line": line,
 		}
+		if step_source:
+			result["step_source"] = step_source
+		return result
 
 
 ## Result of a scenario execution.
@@ -51,6 +56,7 @@ class ScenarioResult:
 	var error_message: String = ""
 	var duration_ms: float = 0.0
 	var line: int = 0
+	var background_failed: bool = false  # True if failed due to Background step
 
 	func is_passed() -> bool:
 		return status == Status.PASSED

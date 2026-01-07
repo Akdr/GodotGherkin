@@ -7,6 +7,7 @@ const ConsoleReporterScript = preload(
 )
 const GherkinASTScript = preload("res://addons/godot_gherkin/core/gherkin_ast.gd")
 const TestResultScript = preload("res://addons/godot_gherkin/runner/test_result.gd")
+const SnippetGeneratorScript = preload("res://addons/godot_gherkin/util/snippet_generator.gd")
 ##
 ## Displays test results with optional ANSI colors for terminal output.
 
@@ -60,27 +61,60 @@ func report_scenario_start(scenario: GherkinASTScript.Scenario) -> void:
 ## Report scenario completion.
 func report_scenario_complete(result: TestResultScript.ScenarioResult) -> void:
 	if verbose:
+		# Check if we need to show Background section
+		var in_background := true
+		var background_shown := false
+
 		# Print step details
 		for step in result.step_results:
+			# Show Background header when first background step appears
+			if step.is_background and not background_shown:
+				_print("    %s" % _colorize("Background:", DIM))
+				background_shown = true
+			elif not step.is_background and in_background:
+				in_background = false
+
 			var symbol := _get_status_symbol(step.status)
 			var color := _get_status_color(step.status)
-			_print("    %s %s %s" % [_colorize(symbol, color), step.keyword, step.step_text])
+			var indent := "      " if step.is_background else "    "
+			_print("%s%s %s %s" % [indent, _colorize(symbol, color), step.keyword, step.step_text])
+
+			if step.status == TestResultScript.Status.FAILED and step.step_source:
+				_print(
+					"%s  %s" % [indent, _colorize("Step definition: %s" % step.step_source, DIM)]
+				)
 
 			if step.error_message:
-				_print("      %s" % _colorize(step.error_message, RED))
+				_print("%s  %s" % [indent, _colorize(step.error_message, RED)])
 	else:
 		# Compact output - just show pass/fail for scenario
 		var symbol := _get_status_symbol(result.status)
 		var color := _get_status_color(result.status)
+
+		var scenario_suffix := ""
+		if result.background_failed:
+			scenario_suffix = _colorize(" (Background failed)", YELLOW)
+
 		_print(
 			(
-				"  %s %s %s"
-				% [_colorize(symbol, color), _colorize("Scenario:", DIM), result.scenario_name]
+				"  %s %s %s%s"
+				% [
+					_colorize(symbol, color),
+					_colorize("Scenario:", DIM),
+					result.scenario_name,
+					scenario_suffix
+				]
 			)
 		)
 
-		if result.error_message and result.status == TestResultScript.Status.FAILED:
-			_print("    %s" % _colorize(result.error_message, RED))
+		if result.status == TestResultScript.Status.FAILED:
+			# Find the failed step and show its source
+			for step in result.step_results:
+				if step.status == TestResultScript.Status.FAILED and step.step_source:
+					_print("    %s" % _colorize("Step definition: %s" % step.step_source, DIM))
+					break
+			if result.error_message:
+				_print("    %s" % _colorize(result.error_message, RED))
 
 
 ## Report full suite results.
@@ -119,12 +153,20 @@ func report_results(result: TestResultScript.SuiteResult) -> void:
 	# Duration
 	_print(_colorize("Finished in %.2fs" % (result.total_duration_ms / 1000.0), DIM))
 
-	# Undefined steps
+	# Undefined steps with snippets
 	if result.undefined_steps.size() > 0:
 		_print("")
 		_print(_colorize("Undefined steps:", YELLOW))
 		for step in result.undefined_steps:
 			_print("  - %s" % step)
+
+		_print("")
+		_print(_colorize("Suggested step definitions:", CYAN))
+		_print("")
+		for step in result.undefined_steps:
+			var snippet := SnippetGeneratorScript.generate_snippet(step)
+			_print(snippet)
+			_print("")
 
 	_print("")
 

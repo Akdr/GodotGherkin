@@ -67,13 +67,15 @@ func execute_scenario(
 	if background:
 		for step in background.steps:
 			var step_result := await _execute_step(step)
+			step_result.is_background = true
 			result.step_results.append(step_result)
 
 			if step_result.status != TestResultScript.Status.PASSED:
 				result.status = step_result.status
 				result.error_message = step_result.error_message
+				result.background_failed = true
 				# Skip remaining steps on failure
-				_skip_remaining_steps(scenario.steps, result)
+				_skip_remaining_steps(scenario.steps, result, false)
 				break
 
 	# Execute scenario steps (only if background passed)
@@ -117,6 +119,9 @@ func _execute_step(step: GherkinASTScript.Step) -> TestResultScript.StepResult:
 		step_completed.emit(step, result)
 		return result
 
+	# Track step definition source for error reporting
+	result.step_source = step_def.source_location
+
 	# Execute the step (pass DataTable/DocString argument if present)
 	var exec_result = step_def.execute(step.text, _context, step.argument)
 
@@ -150,12 +155,18 @@ func _resolve_keyword(keyword: String) -> String:
 
 
 ## Mark remaining steps as skipped.
-func _skip_remaining_steps(steps: Array, result: TestResultScript.ScenarioResult) -> void:
+func _skip_remaining_steps(
+	steps: Array, result: TestResultScript.ScenarioResult, is_background: bool = false
+) -> void:
 	for step: GherkinASTScript.Step in steps:
 		var step_result := TestResultScript.StepResult.new()
 		step_result.step_text = step.text
 		step_result.keyword = step.keyword
 		step_result.line = step.location.line if step.location else 0
 		step_result.status = TestResultScript.Status.SKIPPED
-		step_result.error_message = "Skipped due to previous failure"
+		step_result.is_background = is_background
+		if result.background_failed:
+			step_result.error_message = "Skipped due to Background failure"
+		else:
+			step_result.error_message = "Skipped due to previous failure"
 		result.step_results.append(step_result)
