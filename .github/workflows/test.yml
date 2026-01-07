@@ -30,11 +30,6 @@ jobs:
       - name: Verify Godot installation
         run: godot --version
 
-      - name: Setup addon structure
-        run: |
-          mkdir -p addons/godot_gherkin
-          mv core runner steps util plugin.cfg plugin.gd plugin.gd.uid addons/godot_gherkin/
-
       - name: Import project
         run: |
           godot --headless --import
@@ -115,7 +110,7 @@ jobs:
         run: pip install gdtoolkit
 
       - name: Run gdlint
-        run: gdlint core/ runner/ steps/ util/ plugin.gd tests/
+        run: gdlint addons/godot_gherkin/ tests/
 
       - name: Check formatting with gdformat
-        run: gdformat --check core/ runner/ steps/ util/ plugin.gd tests/
+        run: gdformat --check addons/godot_gherkin/ tests/
