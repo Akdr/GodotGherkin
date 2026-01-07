@@ -76,6 +76,5 @@ func _verify_inherited_tag(ctx: TestContextScript) -> void:
 	# This step is scoped to @inherited_tag, and the scenario doesn't have that tag directly,
 	# but the feature does. So it only matches if tag inheritance is implemented.
 	ctx.assert_true(
-		ctx.get_value("testing_inheritance", false),
-		"Tag inheritance test should have been set up"
+		ctx.get_value("testing_inheritance", false), "Tag inheritance test should have been set up"
 	)

@@ -277,7 +277,11 @@ func assert_greater_or_equal(actual: Variant, threshold: Variant, message: Strin
 		assertions_passed += 1
 		return true
 
-	var msg := message if message else "Expected %s to be greater than or equal to %s" % [actual, threshold]
+	var msg := (
+		message
+		if message
+		else "Expected %s to be greater than or equal to %s" % [actual, threshold]
+	)
 	_record_error(msg)
 	assertions_failed += 1
 	return false
@@ -289,7 +293,9 @@ func assert_less_or_equal(actual: Variant, threshold: Variant, message: String =
 		assertions_passed += 1
 		return true
 
-	var msg := message if message else "Expected %s to be less than or equal to %s" % [actual, threshold]
+	var msg := (
+		message if message else "Expected %s to be less than or equal to %s" % [actual, threshold]
+	)
 	_record_error(msg)
 	assertions_failed += 1
 	return false
