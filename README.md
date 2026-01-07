@@ -360,6 +360,30 @@ func _then_should_be_at(ctx: TestContextScript, expected: String) -> void:
 
 This pattern lets you test navigation logic, state machines, and other behaviors without requiring the full game infrastructure.
 
+## Step Analysis
+
+GodotGherkin automatically analyzes step definitions before running tests and warns about:
+
+- **Load Errors**: Step files that fail to load (parse errors, missing `register_steps()` method)
+- **Duplicate Patterns**: Same step pattern registered in multiple files without tag scoping
+
+Warnings are printed before test execution (silent if no issues):
+
+```
+=== Step File Load Errors ===
+  ✗ res://tests/steps/broken_steps.gd
+    Could not load script (parse error?)
+
+=== Duplicate Step Definitions ===
+  Given 'I have {int} items'
+    - res://tests/steps/inventory_steps.gd
+    - res://tests/steps/cart_steps.gd
+
+Running features...
+```
+
+**Note**: Scoped steps (using `.for_tags()`) with the same pattern are NOT flagged as duplicates - this is intentional design for context-specific implementations.
+
 ## Exit Codes
 
 | Code | Meaning |

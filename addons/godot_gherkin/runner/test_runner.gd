@@ -284,7 +284,7 @@ func _load_steps(path: String) -> void:
 ## Load a single step definition file.
 func _load_step_file(file_path: String) -> void:
 	var script := load(file_path) as GDScript
-	if not script:
+	if not script or not script.can_instantiate():
 		_load_errors.append({"file": file_path, "error": "Could not load script (parse error?)"})
 		return
 

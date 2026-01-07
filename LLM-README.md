@@ -10,7 +10,7 @@ GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` fil
 
 **Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
-**Version**: 0.3.2 - Background steps fix.
+**Version**: 0.3.5 - Step analysis for duplicate detection and load errors.
 
 ## File Structure
 
@@ -342,6 +342,27 @@ godot --headless --script tests/run_tests.gd -- --tags @smoke --tags ~@slow
 ```bash
 godot --headless --script tests/run_tests.gd -- --verbose --fail-fast
 ```
+
+## Step Analysis (Automatic)
+
+Before running tests, GodotGherkin automatically analyzes step definitions and prints warnings for:
+
+1. **Load Errors**: Step files that fail to load (parse errors, missing `register_steps()`)
+2. **Duplicate Patterns**: Same pattern in multiple files without tag scoping
+
+Output (only shown if issues found):
+```
+=== Step File Load Errors ===
+  ✗ res://tests/steps/broken_steps.gd
+    Could not load script (parse error?)
+
+=== Duplicate Step Definitions ===
+  Given 'I have {int} items'
+    - res://tests/steps/inventory_steps.gd
+    - res://tests/steps/cart_steps.gd
+```
+
+**Note**: Scoped steps (`.for_tags()`) with same pattern are NOT duplicates.
 
 ## Limitations
 
