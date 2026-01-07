@@ -12,6 +12,7 @@ var _given_steps: Array[StepDefinitionScript] = []
 var _when_steps: Array[StepDefinitionScript] = []
 var _then_steps: Array[StepDefinitionScript] = []
 var _any_steps: Array[StepDefinitionScript] = []  # Steps that match any keyword
+var _current_source_file: String = ""  # Tracks source during registration
 
 ## Global singleton instance.
 static var _instance: StepRegistryScript = null
@@ -29,33 +30,38 @@ static func reset_instance() -> void:
 	_instance = null
 
 
+## Set the current source file for step registration tracking.
+func set_source_file(path: String) -> void:
+	_current_source_file = path
+
+
 # === Registration API ===
 
 
 ## Register a Given step definition.
 func given(pattern: String, callback: Callable) -> StepDefinitionScript:
-	var step := StepDefinitionScript.new(pattern, callback, "Given")
+	var step := StepDefinitionScript.new(pattern, callback, "Given", _current_source_file)
 	_given_steps.append(step)
 	return step
 
 
 ## Register a When step definition.
 func when(pattern: String, callback: Callable) -> StepDefinitionScript:
-	var step := StepDefinitionScript.new(pattern, callback, "When")
+	var step := StepDefinitionScript.new(pattern, callback, "When", _current_source_file)
 	_when_steps.append(step)
 	return step
 
 
 ## Register a Then step definition.
 func then(pattern: String, callback: Callable) -> StepDefinitionScript:
-	var step := StepDefinitionScript.new(pattern, callback, "Then")
+	var step := StepDefinitionScript.new(pattern, callback, "Then", _current_source_file)
 	_then_steps.append(step)
 	return step
 
 
 ## Register a step that matches any keyword (Given/When/Then/And/But).
 func step(pattern: String, callback: Callable) -> StepDefinitionScript:
-	var step_def := StepDefinitionScript.new(pattern, callback, "")
+	var step_def := StepDefinitionScript.new(pattern, callback, "", _current_source_file)
 	_any_steps.append(step_def)
 	return step_def
 
@@ -141,6 +147,7 @@ func clear() -> void:
 	_when_steps.clear()
 	_then_steps.clear()
 	_any_steps.clear()
+	_current_source_file = ""
 
 
 ## Get the total count of registered step definitions.
@@ -184,3 +191,74 @@ func has_step(pattern: String) -> bool:
 		if step_def.pattern == pattern:
 			return true
 	return false
+
+
+# === Analysis API ===
+
+
+## Result of analyzing registered steps for duplicates and issues.
+class AnalysisResult:
+	var duplicates: Array[Dictionary] = []  # [{pattern, keyword, sources: [file1, file2]}]
+	var total_steps: int = 0
+
+	func has_issues() -> bool:
+		return duplicates.size() > 0
+
+
+## Analyze registered steps for duplicates and potential issues.
+## Returns an AnalysisResult with any problems found.
+func analyze() -> AnalysisResult:
+	var result := AnalysisResult.new()
+	result.total_steps = count()
+
+	# Analyze each keyword category separately
+	_analyze_step_list(_given_steps, "Given", result)
+	_analyze_step_list(_when_steps, "When", result)
+	_analyze_step_list(_then_steps, "Then", result)
+	_analyze_step_list(_any_steps, "*", result)
+
+	return result
+
+
+## Analyze a list of steps for duplicates.
+func _analyze_step_list(
+	steps: Array[StepDefinitionScript], keyword: String, result: AnalysisResult
+) -> void:
+	# Group steps by pattern
+	var pattern_map: Dictionary = {}  # pattern -> Array[StepDefinition]
+
+	for step_def in steps:
+		if not pattern_map.has(step_def.pattern):
+			pattern_map[step_def.pattern] = []
+		pattern_map[step_def.pattern].append(step_def)
+
+	# Find patterns with multiple definitions that could conflict
+	for pattern in pattern_map:
+		var step_list: Array = pattern_map[pattern]
+		if step_list.size() < 2:
+			continue
+
+		# Check for actual conflicts (unscoped duplicates or overlapping scopes)
+		var unscoped_steps: Array = []
+		var scoped_steps: Array = []
+
+		for step_def in step_list:
+			if step_def.scoped_tags.is_empty():
+				unscoped_steps.append(step_def)
+			else:
+				scoped_steps.append(step_def)
+
+		# Multiple unscoped steps with same pattern = definite duplicate
+		if unscoped_steps.size() > 1:
+			var sources: Array[String] = []
+			for step_def in unscoped_steps:
+				var source: String = (
+					step_def.source_location if step_def.source_location else "unknown"
+				)
+				if source not in sources:
+					sources.append(source)
+
+			if sources.size() > 1:
+				result.duplicates.append(
+					{"pattern": pattern, "keyword": keyword, "sources": sources}
+				)

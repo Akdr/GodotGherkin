@@ -26,6 +26,7 @@ var _parser: GherkinParserScript
 var _file_scanner: FileScannerScript
 var _scene_tree: SceneTree = null
 var _step_instances: Array = []  # Keep step definition instances alive
+var _load_errors: Array[Dictionary] = []  # Track step file load errors
 
 ## Configuration
 var features_path: String = "res://tests/features"
@@ -58,6 +59,10 @@ func run_all() -> TestResultScript.SuiteResult:
 
 	# Load step definitions
 	_load_steps(steps_path)
+
+	# Print any load errors or duplicate warnings (silent if no issues)
+	_print_load_errors()
+	_print_duplicate_warnings()
 
 	# Find and parse all feature files
 	var feature_files := _file_scanner.find_feature_files(features_path)
@@ -264,6 +269,7 @@ func _matches_tag_filter(scenario: Variant) -> bool:
 ## Load step definition files from the steps path.
 func _load_steps(path: String) -> void:
 	_registry.clear()
+	_load_errors.clear()
 
 	if not FileScannerScript.dir_exists(path):
 		push_warning("GherkinTestRunner: Steps directory not found: %s" % path)
@@ -279,14 +285,47 @@ func _load_steps(path: String) -> void:
 func _load_step_file(file_path: String) -> void:
 	var script := load(file_path) as GDScript
 	if not script:
-		push_warning("GherkinTestRunner: Could not load step file: %s" % file_path)
+		_load_errors.append({"file": file_path, "error": "Could not load script (parse error?)"})
 		return
 
 	# Create instance and look for register_steps method
 	var instance = script.new()
-	if instance.has_method("register_steps"):
-		instance.register_steps(_registry)
-		# Keep the instance alive so callbacks remain valid
-		_step_instances.append(instance)
-	else:
-		push_warning("GherkinTestRunner: Step file missing register_steps method: %s" % file_path)
+	if not instance.has_method("register_steps"):
+		_load_errors.append({"file": file_path, "error": "Missing register_steps() method"})
+		return
+
+	# Set source file for tracking, then register steps
+	_registry.set_source_file(file_path)
+	instance.register_steps(_registry)
+	_registry.set_source_file("")
+
+	# Keep the instance alive so callbacks remain valid
+	_step_instances.append(instance)
+
+
+## Print step file load errors (silent if none).
+func _print_load_errors() -> void:
+	if _load_errors.is_empty():
+		return
+
+	print("")
+	print("=== Step File Load Errors ===")
+	for err in _load_errors:
+		print("  ✗ %s" % err.file)
+		print("    %s" % err.error)
+	print("")
+
+
+## Print duplicate step definition warnings (silent if none).
+func _print_duplicate_warnings() -> void:
+	var analysis := _registry.analyze()
+	if not analysis.has_issues():
+		return
+
+	print("")
+	print("=== Duplicate Step Definitions ===")
+	for dup in analysis.duplicates:
+		print("  %s '%s'" % [dup.keyword, dup.pattern])
+		for source in dup.sources:
+			print("    - %s" % source)
+	print("")
