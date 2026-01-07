@@ -52,6 +52,14 @@ func get_registry() -> StepRegistryScript:
 	return _registry
 
 
+## Load step definitions from the configured steps path.
+## Call this before run_feature_file() when running specific features.
+func load_steps() -> void:
+	_load_steps(steps_path)
+	_print_load_errors()
+	_print_duplicate_warnings()
+
+
 ## Run all tests in the configured paths.
 func run_all() -> TestResultScript.SuiteResult:
 	var suite_result := TestResultScript.SuiteResult.new()

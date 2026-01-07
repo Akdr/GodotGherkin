@@ -76,6 +76,8 @@ func run(args: PackedStringArray) -> int:
 	var result: TestResultScript.SuiteResult
 
 	if specific_feature:
+		# Load steps first (run_all does this internally, but run_feature_file does not)
+		_runner.load_steps()
 		# Run specific feature
 		var feature_result := await _runner.run_feature_file(specific_feature)
 		result = TestResultScript.SuiteResult.new()
