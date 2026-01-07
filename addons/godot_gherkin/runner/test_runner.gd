@@ -124,12 +124,13 @@ func run_feature(feature: GherkinASTScript.Feature) -> TestResultScript.FeatureR
 
 	var executor := ScenarioExecutorScript.new(_registry)
 	executor.set_context(TestContextScript.new(_scene_tree))
-	executor.set_feature_tags(feature.get_tag_names())
+	var feature_tag_names := feature.get_tag_names()
+	executor.set_feature_tags(feature_tag_names)
 
 	# Run scenarios at feature level
 	for scenario_item in feature.scenarios:
-		# Check tag filter
-		if not _matches_tag_filter(scenario_item):
+		# Check tag filter (scenarios inherit feature tags)
+		if not _matches_tag_filter(scenario_item, feature_tag_names):
 			continue
 
 		var scenario_result: TestResultScript.ScenarioResult
@@ -164,7 +165,7 @@ func run_feature(feature: GherkinASTScript.Feature) -> TestResultScript.FeatureR
 		var rule_background := rule.background if rule.background else feature.background
 
 		for scenario_item in rule.scenarios:
-			if not _matches_tag_filter(scenario_item):
+			if not _matches_tag_filter(scenario_item, feature_tag_names):
 				continue
 
 			var scenario_result: TestResultScript.ScenarioResult
@@ -243,7 +244,8 @@ func _expand_scenario_outline(
 
 
 ## Check if a scenario matches the tag filter.
-func _matches_tag_filter(scenario: Variant) -> bool:
+## Scenarios inherit feature tags for filtering purposes.
+func _matches_tag_filter(scenario: Variant, feature_tags: Array[String] = []) -> bool:
 	if tag_filter.is_empty():
 		return true
 
@@ -252,6 +254,11 @@ func _matches_tag_filter(scenario: Variant) -> bool:
 		scenario_tags = scenario.get_tag_names()
 	elif scenario is GherkinASTScript.ScenarioOutline:
 		scenario_tags = scenario.get_tag_names()
+
+	# Inherit feature tags (scenarios should match feature-level tags)
+	for tag in feature_tags:
+		if tag not in scenario_tags:
+			scenario_tags.append(tag)
 
 	for filter_tag in tag_filter:
 		# Exclusion filter (starts with ~)
