@@ -125,9 +125,9 @@ func _execute_step(step: GherkinASTScript.Step) -> TestResultScript.StepResult:
 	# Execute the step (pass DataTable/DocString argument if present)
 	var exec_result = step_def.execute(step.text, _context, step.argument)
 
-	# Handle async execution (if result is a coroutine)
-	if exec_result is Object and exec_result.has_method("is_valid"):
-		# This might be a signal or coroutine result
+	# Handle async execution
+	# In GDScript 4, async step functions can return a Signal to await
+	if exec_result is Signal:
 		exec_result = await exec_result
 
 	# Check for execution errors

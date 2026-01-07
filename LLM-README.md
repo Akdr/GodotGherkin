@@ -10,7 +10,7 @@ GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` fil
 
 **Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
-**Version**: 0.3.5 - Step analysis for duplicate detection and load errors.
+**Version**: 0.6.0 - UI testing support with scene runner, input simulation, and layout assertions.
 
 ## File Structure
 
@@ -26,14 +26,19 @@ addons/godot_gherkin/
 │   ├── step_definition.gd  # Step pattern + callback storage
 │   └── step_registry.gd    # given/when/then registration API
 ├── runner/
-│   ├── test_context.gd     # State storage + assertions
+│   ├── test_context.gd     # State storage + assertions + input simulation
 │   ├── test_result.gd      # Result classes with to_dict()/to_json()
 │   ├── scenario_executor.gd # Executes scenarios (async-aware)
 │   ├── test_runner.gd      # Orchestrates test execution
 │   ├── cli_runner.gd       # CLI argument parsing
+│   ├── scene_runner.gd     # Scene-based runner for UI tests
+│   ├── scene_runner.tscn   # Scene file for scene-based runner
 │   └── reporters/
 │       ├── console_reporter.gd  # Human-readable output
 │       └── json_reporter.gd     # Machine-readable JSON
+├── steps/
+│   ├── ...
+│   └── ui_steps.gd         # Built-in UI testing steps
 ├── util/
 │   └── file_scanner.gd     # Discovers .feature and *_steps.gd files
 ├── plugin.gd               # EditorPlugin (optional)
@@ -265,7 +270,7 @@ Feature: Pause Menu
 
 ## Async Steps
 
-Steps can use `await`:
+Steps can use `await`. Return a Signal for proper async handling:
 
 ```gdscript
 func _wait_for_signal(ctx: TestContextScript) -> void:
@@ -275,6 +280,86 @@ func _wait_for_signal(ctx: TestContextScript) -> void:
 func _wait_animation(ctx: TestContextScript) -> void:
     var anim: AnimationPlayer = ctx.get_node("AnimationPlayer")
     await anim.animation_finished
+```
+
+### Async Helpers
+
+```gdscript
+await ctx.await_frames(3)                                    # Wait N frames
+await ctx.await_idle()                                       # Wait for idle frame
+var args = await ctx.await_signal_with_timeout(sig, 5.0)    # Signal with timeout
+```
+
+## UI Testing
+
+### Scene-Based Runner
+
+For tests requiring autoloads or `class_name`, use scene runner:
+
+```bash
+# Script runner (no autoloads)
+godot --headless --script tests/run_tests.gd
+
+# Scene runner (autoloads available)
+godot --headless res://addons/godot_gherkin/runner/scene_runner.tscn -- [options]
+```
+
+### Built-in UI Steps
+
+Copy `addons/godot_gherkin/steps/ui_steps.gd` to `tests/steps/` to enable:
+
+```gherkin
+Given I load scene "res://scenes/menu.tscn"
+When I click button "Start"
+When I press key "Enter"
+When I type "player1" into field "Username"
+Then button "Continue" should be visible
+Then button "Start" should be enabled
+Then "Label" should have text "Welcome"
+Then "Button:text=Submit" should be visible
+Then "SubmitBtn" should be below "CancelBtn"
+```
+
+### Input Simulation API
+
+```gdscript
+ctx.simulate_click(node)              # Click button/control
+ctx.simulate_key_press("Enter")       # Press key by name
+ctx.simulate_key_press(KEY_SPACE)     # Press key by constant
+ctx.simulate_text_input("text")       # Type text
+ctx.simulate_mouse_move(Vector2(...)) # Move mouse
+ctx.simulate_hover(node)              # Hover over control
+```
+
+### Node Finding API
+
+```gdscript
+ctx.find_button("Start Game")         # Find button by text
+ctx.find_node_by_text("Welcome")      # Find any node by text
+ctx.find_nodes_by_type("Button")      # Find all nodes of type
+ctx.get_node("Player")                # Get by path
+ctx.query_node("Button:text=Start")   # Query syntax
+```
+
+### Query Syntax
+
+Format: `Type:property=value` or `Type:special`
+
+```gdscript
+ctx.query_node("Button:text=Continue")    # Button with text "Continue"
+ctx.query_node("Label:first")             # First Label
+ctx.query_node("Control:visible")         # First visible Control
+ctx.query_nodes("Button:visible")         # All visible Buttons
+```
+
+### Layout Assertions
+
+```gdscript
+ctx.assert_below(node_a, node_b)          # A is below B
+ctx.assert_right_of(node_a, node_b)       # A is right of B
+ctx.assert_within_viewport(node)          # Node fits in viewport
+ctx.assert_no_overlap(nodes)              # No nodes overlap
+ctx.assert_color(node, "#ff0000")         # Node has color
 ```
 
 ## Mock Pattern for Autoloads
@@ -308,11 +393,13 @@ func _verify_location(ctx: TestContextScript, expected: String) -> void:
 | `GherkinCLIScript` | `runner/cli_runner.gd` | CLI entry point |
 | `GherkinTestRunnerScript` | `runner/test_runner.gd` | Test orchestration |
 | `StepRegistryScript` | `steps/step_registry.gd` | Step registration |
-| `TestContextScript` | `runner/test_context.gd` | State + assertions |
+| `TestContextScript` | `runner/test_context.gd` | State + assertions + input simulation |
 | `TestResultScript` | `runner/test_result.gd` | Result data |
 | `GherkinParserScript` | `core/gherkin_parser.gd` | Parser |
 | `GherkinLexerScript` | `core/gherkin_lexer.gd` | Lexer |
 | `GherkinASTScript` | `core/gherkin_ast.gd` | AST nodes |
+| `SceneRunnerScript` | `runner/scene_runner.gd` | Scene-based test runner |
+| `UIStepsScript` | `steps/ui_steps.gd` | Built-in UI step definitions |
 
 All paths relative to `res://addons/godot_gherkin/`.
 

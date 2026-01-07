@@ -313,7 +313,7 @@ ctx.free_scene()                           # Clean up scene
 
 ## Async Steps
 
-Steps can use `await` for asynchronous operations:
+Steps can use `await` for asynchronous operations. For best results, return a Signal from async steps:
 
 ```gdscript
 func register_steps(registry: StepRegistryScript) -> void:
@@ -328,6 +328,149 @@ func _wait(ctx: TestContextScript, seconds: float) -> void:
 func _wait_animation(ctx: TestContextScript) -> void:
     var player: AnimationPlayer = ctx.get_node("AnimationPlayer")
     await player.animation_finished
+```
+
+### Async Helpers
+
+TestContext provides helpers for common async patterns:
+
+```gdscript
+# Wait for process frames
+await ctx.await_frames(3)  # Wait for 3 frames
+
+# Wait for idle frame
+await ctx.await_idle()
+
+# Wait for a signal with timeout
+var args = await ctx.await_signal_with_timeout(node.some_signal, 5.0)
+```
+
+## UI Testing
+
+GodotGherkin includes built-in support for UI testing with scene management, input simulation, and common UI assertions.
+
+### Scene-Based Test Runner
+
+For tests that require autoloads or `class_name` identifiers to resolve, use the scene-based runner instead of the script runner:
+
+```bash
+# Script runner (simple tests, no autoloads)
+godot --headless --script tests/run_tests.gd
+
+# Scene runner (UI tests, autoloads available)
+godot --headless res://addons/godot_gherkin/runner/scene_runner.tscn -- [options]
+```
+
+The scene runner waits for autoloads to initialize before running tests.
+
+### Built-in UI Steps
+
+Copy `addons/godot_gherkin/steps/ui_steps.gd` to your `tests/steps/` directory to use built-in UI steps:
+
+```gherkin
+Feature: Main Menu
+  Scenario: Start new game
+    Given I load scene "res://scenes/main_menu.tscn"
+    Then button "New Game" should be visible
+    And button "Continue" should be disabled
+    When I click button "New Game"
+    Then "GameTitle" should have text "New Game Setup"
+
+  Scenario: Keyboard navigation
+    Given I load scene "res://scenes/main_menu.tscn"
+    When I press key "Enter"
+    Then "StartButton" should be focused
+```
+
+Available built-in steps:
+
+| Step | Description |
+|------|-------------|
+| `Given I load scene {string}` | Load and instantiate a scene |
+| `When I click button {string}` | Click a button by its text |
+| `When I press key {string}` | Press a keyboard key |
+| `When I type {string}` | Type text into focused control |
+| `When I type {string} into field {string}` | Focus a field and type text |
+| `When I hover over {string}` | Hover over a node |
+| `When I focus {string}` | Focus a control |
+| `Then button {string} should be visible` | Assert button is visible |
+| `Then button {string} should be hidden` | Assert button is hidden |
+| `Then button {string} should be enabled` | Assert button is enabled |
+| `Then button {string} should be disabled` | Assert button is disabled |
+| `Then {string} should be visible` | Assert any node is visible |
+| `Then {string} should be hidden` | Assert any node is hidden |
+| `Then {string} should have text {string}` | Assert node text content |
+| `Then {string} should be focused` | Assert node has focus |
+| `Then {string} should exist` | Assert node exists |
+| `Then {string} should not exist` | Assert node doesn't exist |
+
+### Input Simulation
+
+TestContext provides input simulation helpers for custom step implementations:
+
+```gdscript
+# Click a button or control
+ctx.simulate_click(button_node)
+
+# Press keyboard keys
+ctx.simulate_key_press("Enter")
+ctx.simulate_key_press("Escape")
+ctx.simulate_key_press(KEY_SPACE)
+
+# Type text
+ctx.simulate_text_input("player1")
+
+# Mouse movement and hover
+ctx.simulate_mouse_move(Vector2(100, 200))
+ctx.simulate_hover(control_node)
+```
+
+### Node Finding
+
+Find nodes in the current scene:
+
+```gdscript
+# Find by text property (Label, Button, etc.)
+var label = ctx.find_node_by_text("Welcome")
+
+# Find button by text
+var btn = ctx.find_button("Start Game")
+
+# Find all nodes of a type
+var buttons = ctx.find_nodes_by_type("Button")
+
+# Get node by path
+var player = ctx.get_node("Player")
+```
+
+### Node Query Syntax
+
+For flexible node queries, use the query syntax in step patterns:
+
+```gherkin
+# Query by type and property
+Then "Button:text=Continue" should be visible
+When I click "Button:text=New Game"
+
+# Query by type
+Then "Label:first" should have text "Welcome"
+```
+
+The query format is `Type:property=value` where:
+- `Type` is a Godot class name (Button, Label, Control, etc.)
+- `property=value` filters by property (optional)
+- Special properties: `first`, `last`, `visible`, `focused`
+
+### Layout Assertions
+
+Assert spatial relationships between UI elements:
+
+```gherkin
+Then "SubmitButton" should be below "CancelButton"
+Then "OKButton" should be right of "CancelButton"
+Then "ErrorLabel" should have color "#ff0000"
+Then "OptionsPanel" should fit within viewport
+Then no UI elements should overlap
 ```
 
 ## Testing Patterns
