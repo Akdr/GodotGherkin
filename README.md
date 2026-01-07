@@ -384,6 +384,76 @@ Running features...
 
 **Note**: Scoped steps (using `.for_tags()`) with the same pattern are NOT flagged as duplicates - this is intentional design for context-specific implementations.
 
+## Code Coverage
+
+GodotGherkin supports line-level code coverage for GDScript files, with output in LCOV format for integration with GitHub Actions, Codecov, and Coveralls.
+
+### Enable Coverage
+
+```bash
+# Run tests with coverage (single command handles everything)
+godot --headless --script tests/run_tests.gd -- \
+  --coverage \
+  --coverage-include "res://src/**/*.gd"
+
+# Save LCOV to file
+godot --headless --script tests/run_tests.gd -- \
+  --coverage \
+  --coverage-include "res://src/**/*.gd" \
+  --coverage-output coverage/lcov.info
+```
+
+The `--coverage` flag automatically:
+1. Creates a temp project copy in `tests/coverage/.temp/`
+2. Copies and instruments target files (originals untouched)
+3. Runs tests in the temp project and collects coverage data
+4. Cleans up temp directory
+5. Outputs LCOV report (to stdout or file)
+
+### Coverage Options
+
+| Option | Description |
+|--------|-------------|
+| `--coverage` | Enable coverage (instruments, runs, restores automatically) |
+| `--coverage-output <path>` | Write LCOV to file instead of stdout |
+| `--coverage-include <glob>` | Files to include (can be repeated) |
+| `--coverage-exclude <glob>` | Files to exclude (can be repeated) |
+
+### Console Output
+
+When coverage is enabled, a summary is printed after tests complete:
+
+```
+=== Coverage Summary ===
+  src/math/calculator.gd    85.7% (12/14 lines)
+  src/player/inventory.gd   100%  (8/8 lines)
+  src/utils/helpers.gd      50.0% (3/6 lines)
+  ─────────────────────────────────────────────
+  Total:                    82.1% (23/28 lines)
+
+Coverage report written to: coverage/lcov.info
+```
+
+### GitHub Actions Integration
+
+Add coverage to your workflow (`.github/workflows/test.yml`):
+
+```yaml
+- name: Run tests with coverage
+  run: |
+    godot --headless --script tests/run_tests.gd -- \
+      --coverage \
+      --coverage-include "res://src/**/*.gd" \
+      --coverage-output coverage/lcov.info
+  timeout-minutes: 5
+
+- name: Upload coverage to Codecov
+  uses: codecov/codecov-action@v4
+  with:
+    files: coverage/lcov.info
+    fail_ci_if_error: false
+```
+
 ## Exit Codes
 
 | Code | Meaning |

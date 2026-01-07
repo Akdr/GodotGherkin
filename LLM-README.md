@@ -10,7 +10,7 @@ GodotGherkin is a BDD testing framework for Godot 4.3+. It parses `.feature` fil
 
 **Important**: This addon uses preload constants instead of `class_name` for headless compatibility.
 
-**Version**: 0.3.5 - Step analysis for duplicate detection and load errors.
+**Version**: 0.4.1 - Added code coverage with LCOV output for CI/CD integration.
 
 ## File Structure
 
@@ -36,6 +36,11 @@ addons/godot_gherkin/
 │       └── json_reporter.gd     # Machine-readable JSON
 ├── util/
 │   └── file_scanner.gd     # Discovers .feature and *_steps.gd files
+├── coverage/
+│   ├── coverage_tracker.gd    # Singleton for hit tracking
+│   ├── coverage_reporter.gd   # LCOV format + console summary
+│   ├── gdscript_lexer.gd      # GDScript tokenizer
+│   └── gdscript_instrumentor.gd # Source instrumentation
 ├── plugin.gd               # EditorPlugin (optional)
 └── plugin.cfg
 
@@ -364,6 +369,63 @@ Output (only shown if issues found):
 
 **Note**: Scoped steps (`.for_tags()`) with same pattern are NOT duplicates.
 
+## Code Coverage
+
+Line-level coverage with LCOV output. Single command handles everything.
+
+```bash
+# Run with coverage (instruments, runs, restores automatically)
+godot --headless --script tests/run_tests.gd -- \
+  --coverage --coverage-include "res://src/**/*.gd"
+
+# Save LCOV to file
+godot --headless --script tests/run_tests.gd -- \
+  --coverage --coverage-include "res://src/**/*.gd" \
+  --coverage-output coverage/lcov.info
+```
+
+### Coverage CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `--coverage` | Enable coverage (instruments, runs, restores automatically) |
+| `--coverage-output <path>` | Write LCOV to file instead of stdout |
+| `--coverage-include <glob>` | Files to include (repeatable) |
+| `--coverage-exclude <glob>` | Files to exclude (repeatable) |
+
+### Coverage Output
+
+Console summary after tests:
+```
+=== Coverage Summary ===
+  src/game.gd    85.7% (12/14 lines)
+  src/player.gd  100%  (8/8 lines)
+  Total:         89.1% (20/22 lines)
+
+Coverage report written to: coverage/lcov.info
+```
+
+LCOV format for Codecov/Coveralls:
+```
+TN:GodotGherkin Coverage
+SF:res://src/game.gd
+DA:10,5
+DA:11,5
+DA:15,0
+LF:3
+LH:2
+end_of_record
+```
+
+### Key Coverage Classes
+
+| Script | Purpose |
+|--------|---------|
+| `CoverageTrackerScript` | Singleton for recording line hits |
+| `CoverageReporterScript` | LCOV generation + console summary |
+| `GDScriptLexerScript` | Tokenizes GDScript for instrumentation |
+| `GDScriptInstrumentorScript` | Transforms source with hit() calls |
+
 ## Limitations
 
 - No editor integration yet (EditorPlugin is a stub)
@@ -384,4 +446,7 @@ test-bdd-verbose:
 
 test-bdd-json:
 	godot --headless --script tests/run_tests.gd -- --format json --output test-results.json
+
+test-bdd-coverage:
+	godot --headless --script tests/run_tests.gd -- --coverage --coverage-include "res://src/**/*.gd" --coverage-output coverage/lcov.info
 ```

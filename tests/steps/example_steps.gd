@@ -1,8 +1,10 @@
 extends RefCounted
 ## Example step definitions for the calculator feature.
+## Uses the Calculator class from src/ to demonstrate coverage tracking.
 
 const StepRegistryScript = preload("res://addons/godot_gherkin/steps/step_registry.gd")
 const TestContextScript = preload("res://addons/godot_gherkin/runner/test_context.gd")
+const CalculatorScript = preload("res://src/calculator.gd")
 
 
 func register_steps(registry: StepRegistryScript) -> void:
@@ -20,31 +22,48 @@ func register_steps(registry: StepRegistryScript) -> void:
 	registry.then("the result should be {int}", _check_result)
 
 
+func _get_calculator(ctx: TestContextScript) -> CalculatorScript:
+	var calc: CalculatorScript = ctx.get_value("calculator", null)
+	if not calc:
+		calc = CalculatorScript.new()
+		ctx.set_value("calculator", calc)
+	return calc
+
+
 func _reset_calculator(ctx: TestContextScript) -> void:
-	ctx.set_value("result", 0)
+	var calc := _get_calculator(ctx)
+	calc.reset()
 
 
 func _set_initial_value(ctx: TestContextScript, value: int) -> void:
-	ctx.set_value("result", value)
+	var calc := _get_calculator(ctx)
+	calc.set_value(value)
 
 
 func _add_two_numbers(ctx: TestContextScript, a: int, b: int) -> void:
-	ctx.set_value("result", a + b)
+	var calc := _get_calculator(ctx)
+	calc.set_value(a)
+	calc.add(b)
 
 
 func _add_number(ctx: TestContextScript, value: int) -> void:
-	var current: int = ctx.get_value("result", 0)
-	ctx.set_value("result", current + value)
+	var calc := _get_calculator(ctx)
+	calc.add(value)
 
 
 func _subtract(ctx: TestContextScript, subtrahend: int, minuend: int) -> void:
-	ctx.set_value("result", minuend - subtrahend)
+	var calc := _get_calculator(ctx)
+	calc.set_value(minuend)
+	calc.subtract(subtrahend)
 
 
 func _multiply(ctx: TestContextScript, a: int, b: int) -> void:
-	ctx.set_value("result", a * b)
+	var calc := _get_calculator(ctx)
+	calc.set_value(a)
+	calc.multiply(b)
 
 
 func _check_result(ctx: TestContextScript, expected: int) -> void:
-	var actual: int = ctx.get_value("result", 0)
+	var calc := _get_calculator(ctx)
+	var actual := int(calc.get_value())
 	ctx.assert_equal(actual, expected, "Calculator result mismatch")

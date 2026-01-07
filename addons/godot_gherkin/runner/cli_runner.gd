@@ -12,6 +12,11 @@ const ConsoleReporterScript = preload(
 )
 const JsonReporterScript = preload("res://addons/godot_gherkin/runner/reporters/json_reporter.gd")
 const FileScannerScript = preload("res://addons/godot_gherkin/util/file_scanner.gd")
+const CoverageTrackerScript = preload("res://addons/godot_gherkin/coverage/coverage_tracker.gd")
+const CoverageReporterScript = preload("res://addons/godot_gherkin/coverage/coverage_reporter.gd")
+const GDScriptInstrumentorScript = preload(
+	"res://addons/godot_gherkin/coverage/gdscript_instrumentor.gd"
+)
 ##
 ## Parses command-line arguments and orchestrates test execution.
 ## Designed for headless execution with AI assistants and CI/CD systems.
@@ -36,6 +41,17 @@ var verbose: bool = false
 var dry_run: bool = false
 var fail_fast: bool = false
 var no_color: bool = false
+
+## Coverage configuration
+var coverage_enabled: bool = false
+var coverage_output: String = ""  # Empty = stdout
+var coverage_include: Array[String] = []
+var coverage_exclude: Array[String] = []
+
+## Internal coverage state
+var _coverage_temp_dir := "res://tests/coverage/.temp/"
+var _instrumented_files: Array[String] = []
+var _is_coverage_subprocess := false
 
 
 func _init(scene_tree: SceneTree = null) -> void:
@@ -72,6 +88,16 @@ func run(args: PackedStringArray) -> int:
 	if dry_run:
 		return _do_dry_run()
 
+	# Handle coverage - spawn subprocess with temp project
+	if coverage_enabled and not _is_coverage_subprocess:
+		return await _run_coverage_subprocess()
+
+	# Enable coverage tracking if in subprocess
+	if _is_coverage_subprocess:
+		var tracker := CoverageTrackerScript.get_instance()
+		tracker.clear()
+		tracker.enable()
+
 	# Run tests
 	var result: TestResultScript.SuiteResult
 
@@ -87,6 +113,10 @@ func run(args: PackedStringArray) -> int:
 
 	# Report results
 	_reporter.report_results(result)
+
+	# Generate coverage report if in subprocess
+	if _is_coverage_subprocess:
+		_output_coverage_report()
 
 	# Return appropriate exit code
 	if result.is_passed():
@@ -155,6 +185,35 @@ func _parse_args(args: PackedStringArray) -> int:
 
 			"--no-color":
 				no_color = true
+
+			"--coverage":
+				coverage_enabled = true
+
+			"--coverage-subprocess":
+				# Internal flag - running in temp project for coverage
+				_is_coverage_subprocess = true
+				coverage_enabled = true
+
+			"--coverage-output":
+				i += 1
+				if i >= args.size():
+					_print_error("--coverage-output requires a path argument")
+					return EXIT_ERROR
+				coverage_output = args[i]
+
+			"--coverage-include":
+				i += 1
+				if i >= args.size():
+					_print_error("--coverage-include requires a glob pattern argument")
+					return EXIT_ERROR
+				coverage_include.append(args[i])
+
+			"--coverage-exclude":
+				i += 1
+				if i >= args.size():
+					_print_error("--coverage-exclude requires a glob pattern argument")
+					return EXIT_ERROR
+				coverage_exclude.append(args[i])
 
 			"--help", "-h":
 				_print_help()
@@ -237,6 +296,219 @@ func _print_error(message: String) -> void:
 	printerr("Use --help for usage information.")
 
 
+## Run coverage by creating temp project and spawning subprocess.
+func _run_coverage_subprocess() -> int:
+	# Create temp project directory
+	var abs_temp_dir := ProjectSettings.globalize_path(_coverage_temp_dir)
+	_remove_dir_recursive(abs_temp_dir)
+	DirAccess.make_dir_recursive_absolute(abs_temp_dir)
+
+	# Copy essential project files
+	var project_root := ProjectSettings.globalize_path("res://")
+	_copy_file(project_root.path_join("project.godot"), abs_temp_dir.path_join("project.godot"))
+
+	# Copy addon
+	_copy_dir_recursive(
+		ProjectSettings.globalize_path("res://addons/godot_gherkin"),
+		abs_temp_dir.path_join("addons/godot_gherkin")
+	)
+
+	# Copy tests
+	_copy_dir_recursive(
+		ProjectSettings.globalize_path("res://tests"),
+		abs_temp_dir.path_join("tests")
+	)
+
+	# Copy source directories from include patterns (before instrumentation overwrites them)
+	for pattern in coverage_include:
+		# Extract base directory before any wildcards
+		var path := pattern.trim_prefix("res://")
+		var wildcard_pos := path.find("*")
+		if wildcard_pos > 0:
+			path = path.substr(0, wildcard_pos).trim_suffix("/")
+		var base_dir := path.get_base_dir() if "/" in path else path
+		if not base_dir.is_empty():
+			var src_dir := ProjectSettings.globalize_path("res://" + base_dir)
+			var dst_dir := abs_temp_dir.path_join(base_dir)
+			if DirAccess.dir_exists_absolute(src_dir):
+				_copy_dir_recursive(src_dir, dst_dir)
+
+	# Instrument target files and copy to temp
+	var instrumentor := GDScriptInstrumentorScript.new()
+	var files := instrumentor.instrument_files(coverage_include, coverage_exclude)
+
+	if files.is_empty():
+		if verbose:
+			print("No files to instrument for coverage.")
+
+	for file_path: String in files:
+		var instrumented_source: String = files[file_path]
+		var relative_path: String = file_path.trim_prefix("res://")
+		var temp_file_path := abs_temp_dir.path_join(relative_path)
+
+		# Ensure directory exists
+		DirAccess.make_dir_recursive_absolute(temp_file_path.get_base_dir())
+
+		# Write instrumented file
+		var file := FileAccess.open(temp_file_path, FileAccess.WRITE)
+		if file:
+			file.store_string(instrumented_source)
+			file.close()
+			if verbose:
+				print("  Instrumented: %s" % file_path)
+
+	if verbose and not files.is_empty():
+		print("Instrumented %d file(s) for coverage." % files.size())
+
+	# Build subprocess arguments
+	var godot_path := OS.get_executable_path()
+	var subprocess_args := PackedStringArray([
+		"--headless",
+		"--path", abs_temp_dir,
+		"--script", "tests/run_tests.gd",
+		"--",
+		"--coverage-subprocess"
+	])
+
+	# Pass through relevant arguments
+	if not features_path.is_empty() and features_path != "res://tests/features":
+		subprocess_args.append_array(["--features", features_path])
+	if not steps_path.is_empty() and steps_path != "res://tests/steps":
+		subprocess_args.append_array(["--steps", steps_path])
+	if not specific_feature.is_empty():
+		subprocess_args.append_array(["--feature", specific_feature])
+	for tag in tags:
+		subprocess_args.append_array(["--tags", tag])
+	if format != "console":
+		subprocess_args.append_array(["--format", format])
+	if verbose:
+		subprocess_args.append("--verbose")
+	if fail_fast:
+		subprocess_args.append("--fail-fast")
+	if no_color:
+		subprocess_args.append("--no-color")
+
+	# Run subprocess and capture output
+	var output := []
+	var exit_code := OS.execute(godot_path, subprocess_args, output, true)
+
+	# Print subprocess output
+	for line in output:
+		print(line)
+
+	# Write coverage output to file if specified (in original project location)
+	if not coverage_output.is_empty():
+		# The LCOV data is in the subprocess output, extract and save it
+		var lcov_content := _extract_lcov_from_output(output)
+		if not lcov_content.is_empty():
+			var abs_output := ProjectSettings.globalize_path(coverage_output)
+			DirAccess.make_dir_recursive_absolute(abs_output.get_base_dir())
+			var out_file := FileAccess.open(abs_output, FileAccess.WRITE)
+			if out_file:
+				out_file.store_string(lcov_content)
+				out_file.close()
+				print("Coverage report written to: %s" % coverage_output)
+
+	# Clean up temp directory
+	_remove_dir_recursive(abs_temp_dir)
+
+	return exit_code
+
+
+## Output coverage report (called in subprocess).
+func _output_coverage_report() -> void:
+	var tracker := CoverageTrackerScript.get_instance()
+	tracker.disable()
+
+	# Print console summary
+	CoverageReporterScript.print_summary()
+
+	# Output LCOV to stdout (parent process will capture it)
+	print(tracker.generate_lcov())
+
+
+## Extract LCOV content from subprocess output.
+func _extract_lcov_from_output(output: Array) -> String:
+	var lcov_lines := PackedStringArray()
+	var in_lcov := false
+
+	for line in output:
+		var text: String = str(line)
+		for subline in text.split("\n"):
+			if subline.begins_with("TN:"):
+				in_lcov = true
+			if in_lcov:
+				lcov_lines.append(subline)
+				if subline == "end_of_record":
+					# Check if more records follow
+					pass
+
+	return "\n".join(lcov_lines)
+
+
+## Copy a single file.
+func _copy_file(src: String, dst: String) -> void:
+	var src_file := FileAccess.open(src, FileAccess.READ)
+	if not src_file:
+		return
+	var content := src_file.get_as_text()
+	src_file.close()
+
+	DirAccess.make_dir_recursive_absolute(dst.get_base_dir())
+	var dst_file := FileAccess.open(dst, FileAccess.WRITE)
+	if dst_file:
+		dst_file.store_string(content)
+		dst_file.close()
+
+
+## Recursively copy a directory.
+func _copy_dir_recursive(src: String, dst: String) -> void:
+	DirAccess.make_dir_recursive_absolute(dst)
+
+	var dir := DirAccess.open(src)
+	if not dir:
+		return
+
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+
+	while file_name != "":
+		if file_name != "." and file_name != "..":
+			var src_path := src.path_join(file_name)
+			var dst_path := dst.path_join(file_name)
+
+			if dir.current_is_dir():
+				_copy_dir_recursive(src_path, dst_path)
+			else:
+				_copy_file(src_path, dst_path)
+
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+
+
+## Recursively remove a directory and its contents.
+func _remove_dir_recursive(path: String) -> void:
+	var dir := DirAccess.open(path)
+	if not dir:
+		return
+
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+
+	while file_name != "":
+		if file_name != "." and file_name != "..":
+			var full_path := path.path_join(file_name)
+			if dir.current_is_dir():
+				_remove_dir_recursive(full_path)
+			else:
+				DirAccess.remove_absolute(full_path)
+		file_name = dir.get_next()
+
+	dir.list_dir_end()
+	DirAccess.remove_absolute(path)
+
+
 ## Print help message.
 func _print_help() -> void:
 	print(
@@ -260,6 +532,12 @@ Options:
   --no-color             Disable colored output
   --help, -h             Show this help message
 
+Coverage Options:
+  --coverage             Enable coverage (instruments, runs, restores automatically)
+  --coverage-output <path>   Write LCOV to file (default: stdout)
+  --coverage-include <glob>  Files to include (can repeat, e.g. "res://src/**/*.gd")
+  --coverage-exclude <glob>  Files to exclude (can repeat, e.g. "res://addons/**")
+
 Examples:
   # Run all tests
   godot --headless --script tests/run_tests.gd
@@ -272,6 +550,9 @@ Examples:
 
   # JSON output
   godot --headless --script tests/run_tests.gd -- --format json
+
+  # Run with coverage
+  godot --headless --script tests/run_tests.gd -- --coverage --coverage-include "res://src/**/*.gd"
 
 Exit Codes:
   0  All tests passed

@@ -15,6 +15,9 @@ LLM-README.md export-ignore
 # Test suite (for addon development only)
 tests/ export-ignore
 
+# Example source code (for coverage testing only)
+src/ export-ignore
+
 # Godot project files (for addon development only)
 project.godot export-ignore
 Godot.app/ export-ignore

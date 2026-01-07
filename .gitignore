@@ -23,3 +23,4 @@ test-results.json
 
 # Generated uid files
 *.uid
+coverage/
