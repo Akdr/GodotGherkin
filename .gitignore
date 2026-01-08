@@ -1,3 +1,9 @@
+# macOS
+.DS_Store
+
+# Coverage output
+coverage/
+
 # Godot 4+ specific ignores
 .godot/
 .nomedia
